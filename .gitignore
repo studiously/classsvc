@@ -1,1 +1,4 @@
+vendor/
 .idea/
+glide.lock
+classsvc
