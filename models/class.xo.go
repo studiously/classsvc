@@ -14,6 +14,7 @@ type Class struct {
 	ID          uuid.UUID `json:"id"`           // id
 	Name        string    `json:"name"`         // name
 	CurrentUnit uuid.UUID `json:"current_unit"` // current_unit
+	Active      bool      `json:"active"`       // active
 
 	// xo fields
 	_exists, _deleted bool
@@ -40,14 +41,14 @@ func (c *Class) Insert(db XODB) error {
 
 	// sql insert query, primary key must be provided
 	const sqlstr = `INSERT INTO public.classes (` +
-		`id, name, current_unit` +
+		`id, name, current_unit, active` +
 		`) VALUES (` +
-		`$1, $2, $3` +
+		`$1, $2, $3, $4` +
 		`)`
 
 	// run query
-	XOLog(sqlstr, c.ID, c.Name, c.CurrentUnit)
-	err = db.QueryRow(sqlstr, c.ID, c.Name, c.CurrentUnit).Scan(&c.ID)
+	XOLog(sqlstr, c.ID, c.Name, c.CurrentUnit, c.Active)
+	err = db.QueryRow(sqlstr, c.ID, c.Name, c.CurrentUnit, c.Active).Scan(&c.ID)
 	if err != nil {
 		return err
 	}
@@ -74,14 +75,14 @@ func (c *Class) Update(db XODB) error {
 
 	// sql query
 	const sqlstr = `UPDATE public.classes SET (` +
-		`name, current_unit` +
+		`name, current_unit, active` +
 		`) = ( ` +
-		`$1, $2` +
-		`) WHERE id = $3`
+		`$1, $2, $3` +
+		`) WHERE id = $4`
 
 	// run query
-	XOLog(sqlstr, c.Name, c.CurrentUnit, c.ID)
-	_, err = db.Exec(sqlstr, c.Name, c.CurrentUnit, c.ID)
+	XOLog(sqlstr, c.Name, c.CurrentUnit, c.Active, c.ID)
+	_, err = db.Exec(sqlstr, c.Name, c.CurrentUnit, c.Active, c.ID)
 	return err
 }
 
@@ -107,18 +108,18 @@ func (c *Class) Upsert(db XODB) error {
 
 	// sql query
 	const sqlstr = `INSERT INTO public.classes (` +
-		`id, name, current_unit` +
+		`id, name, current_unit, active` +
 		`) VALUES (` +
-		`$1, $2, $3` +
+		`$1, $2, $3, $4` +
 		`) ON CONFLICT (id) DO UPDATE SET (` +
-		`id, name, current_unit` +
+		`id, name, current_unit, active` +
 		`) = (` +
-		`EXCLUDED.id, EXCLUDED.name, EXCLUDED.current_unit` +
+		`EXCLUDED.id, EXCLUDED.name, EXCLUDED.current_unit, EXCLUDED.active` +
 		`)`
 
 	// run query
-	XOLog(sqlstr, c.ID, c.Name, c.CurrentUnit)
-	_, err = db.Exec(sqlstr, c.ID, c.Name, c.CurrentUnit)
+	XOLog(sqlstr, c.ID, c.Name, c.CurrentUnit, c.Active)
+	_, err = db.Exec(sqlstr, c.ID, c.Name, c.CurrentUnit, c.Active)
 	if err != nil {
 		return err
 	}
@@ -167,7 +168,7 @@ func ClassByID(db XODB, id uuid.UUID) (*Class, error) {
 
 	// sql query
 	const sqlstr = `SELECT ` +
-		`id, name, current_unit ` +
+		`id, name, current_unit, active ` +
 		`FROM public.classes ` +
 		`WHERE id = $1`
 
@@ -177,7 +178,7 @@ func ClassByID(db XODB, id uuid.UUID) (*Class, error) {
 		_exists: true,
 	}
 
-	err = db.QueryRow(sqlstr, id).Scan(&c.ID, &c.Name, &c.CurrentUnit)
+	err = db.QueryRow(sqlstr, id).Scan(&c.ID, &c.Name, &c.CurrentUnit, &c.Active)
 	if err != nil {
 		return nil, err
 	}

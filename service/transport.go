@@ -4,33 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/go-kit/kit/log"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	"github.com/ory/hydra/sdk"
+	. "github.com/studiously/classsvc/errors"
 	"github.com/studiously/classsvc/middleware/auth"
 )
-
-var (
-	ErrBadRequest = errors.New("the request is malformed or invalid")
-	ErrBadRouting = errors.New("inconsistent mapping between route and handler (programmer error)")
-
-	signingString []byte
-)
-
-func init() {
-	signingString = []byte(os.Getenv("SIGNING_STRING"))
-	if len(signingString) == 0 {
-		signingString = securecookie.GenerateRandomKey(32)
-	}
-}
 
 func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Handler {
 	r := mux.NewRouter()
@@ -42,15 +26,15 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 	// GET /classes/
 	// Get a list of classes the user has access to.
 	r.Methods("GET").Path("/classes/").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "class:get")(e.GetClassEndpoint),
+		auth.New(client.Introspection, "classes:get")(e.GetClassEndpoint),
 		decodeGetClassRequest,
 		encodeResponse,
 		append(options, httptransport.ServerBefore(auth.ToHTTPContext()))...,
 	))
 
 	r.Methods("POST").Path("/classes/").Handler(httptransport.NewServer(
-		e.CreateClassEndpoint,
-		decodeCreateClassEndpoint,
+		auth.New(client.Introspection, "classes:new")(e.CreateClassEndpoint),
+		decodeCreateClassRequest,
 		encodeResponse,
 		options...
 	))
@@ -67,7 +51,7 @@ func decodeGetClassRequest(_ context.Context, r *http.Request) (interface{}, err
 	return getClassRequest{id}, nil
 }
 
-func decodeCreateClassEndpoint(_ context.Context, r *http.Request) (interface{}, error) {
+func decodeCreateClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var req createClassRequest
 	if e := json.NewDecoder(r.Body).Decode(req.Class); e != nil {
 		return nil, e

@@ -6,7 +6,9 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	ajwt "github.com/go-kit/kit/auth/jwt"
 	"github.com/go-kit/kit/endpoint"
+	"github.com/google/uuid"
 	hoauth2 "github.com/ory/hydra/oauth2"
+	. "github.com/studiously/classsvc/errors"
 )
 
 type contextKey string
@@ -14,6 +16,7 @@ type contextKey string
 const (
 	// OAuth2TokenContextKey holds the key used to store an OAuth2 Token in the context.
 	OAuth2IntrospectionContextKey contextKey = "OAuth2Introspection"
+	SubjectContextKey             contextKey = "Subject"
 )
 
 func New(introspector hoauth2.Introspector, scopes ...string) endpoint.Middleware {
@@ -23,7 +26,11 @@ func New(introspector hoauth2.Introspector, scopes ...string) endpoint.Middlewar
 			if err != nil {
 				return nil, err
 			}
-			return outer(context.WithValue(ctx, OAuth2IntrospectionContextKey, introspection), request)
+			subj, err := uuid.Parse(introspection.Subject)
+			if err != nil {
+				return nil, ErrUnauthenticated
+			}
+			return outer(context.WithValue(context.WithValue(ctx, OAuth2IntrospectionContextKey, introspection), SubjectContextKey, subj), request)
 		}
 	}
 }

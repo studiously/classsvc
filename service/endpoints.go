@@ -23,6 +23,7 @@ import (
 // construct individual endpoints using transport/http.NewClient, combine them
 // into an Endpoints, and return it to the caller as a Service.
 type Endpoints struct {
+	GetClassesEndpoint      endpoint.Endpoint
 	GetClassEndpoint        endpoint.Endpoint
 	CreateClassEndpoint     endpoint.Endpoint
 	UpdateClassEndpoint     endpoint.Endpoint
@@ -37,12 +38,13 @@ type Endpoints struct {
 
 func MakeServerEndpoints(s Service) Endpoints {
 	return Endpoints{
+		GetClassesEndpoint:      MakeGetClassesEndpoint(s),
 		GetClassEndpoint:        MakeGetClassEndpoint(s),
 		CreateClassEndpoint:     MakeCreateClassEndpoint(s),
 		UpdateClassEndpoint:     MakeUpdateClassEndpoint(s),
 		DeleteClassEndpoint:     MakeDeleteClassEndpoint(s),
 		GetMemberEndpoint:       MakeGetMemberEndpoint(s),
-		GetMemberByUserEndpoint: MakeGetMemberByUserEndpoint(s),
+		//GetMemberByUserEndpoint: MakeGetMemberByUserEndpoint(s),
 		CreateMemberEndpoint:    MakeCreateMemberEndpoint(s),
 		UpdateMemberEndpoint:    MakeUpdateMemberEndpoint(s),
 		DeleteMemberEndpoint:    MakeDeleteMemberEndpoint(s),
@@ -56,7 +58,6 @@ func MakeGetClassesEndpoint(s Service) endpoint.Endpoint {
 		return getClassesResponse{}, nil
 	}
 }
-
 
 type getClassesResponse struct {
 	Error error `json:"error,omitempty"`
@@ -145,23 +146,23 @@ type getMemberResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
-func MakeGetMemberByUserEndpoint(s Service) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(getMemberByUserRequest)
-		member, e := s.GetMemberByUser(ctx, req.User, req.Class)
-		return getMemberByUserResponse{member, e}, nil
-	}
-}
-
-type getMemberByUserRequest struct {
-	User  uuid.UUID `json:"user"`
-	Class uuid.UUID `json:"class"`
-}
-
-type getMemberByUserResponse struct {
-	*models.Member `json:"member"`
-	Error error `json:"error,omitempty"`
-}
+//func MakeGetMemberByUserEndpoint(s Service) endpoint.Endpoint {
+//	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+//		req := request.(getMemberByUserRequest)
+//		member, e := s.GetMemberByUser(ctx, req.User, req.Class)
+//		return getMemberByUserResponse{member, e}, nil
+//	}
+//}
+//
+//type getMemberByUserRequest struct {
+//	User  uuid.UUID `json:"user"`
+//	Class uuid.UUID `json:"class"`
+//}
+//
+//type getMemberByUserResponse struct {
+//	*models.Member `json:"member"`
+//	Error error `json:"error,omitempty"`
+//}
 
 func MakeCreateMemberEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {

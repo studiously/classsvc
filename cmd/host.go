@@ -54,6 +54,14 @@ All possible controls are listed below. The host process additionally exposes a 
 CORE CONTROLS
 =============
 - DATABASE_URL: A URL to a persistent backend. Classsvc supports PostgreSQL currently.
+
+HYDRA CONTROLS
+==============
+A Hydra server is required to perform token introspection and thus authorization. Most endpoints (excepting health and unauthenticated ones) will fail without a valid Hydra server.
+
+- HYDRA_CLIENT_ID: ID for Hydra client.
+- HYDRA_CLIENT_SECRET: Secret for Hydra client.
+- HYDRA_CLUSTER_URL: URL of Hydra cluster.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		var logger log.Logger
@@ -67,6 +75,8 @@ CORE CONTROLS
 			// Set up database
 			var driver = os.Getenv("DATABASE_DRIVER")
 			var config = os.Getenv("DATABASE_CONFIG")
+
+			logger.Log("driver", driver, "config", config)
 
 			db, err := sql.Open(driver, config)
 			if err != nil {
@@ -101,10 +111,10 @@ CORE CONTROLS
 			errs <- fmt.Errorf("%s", <-c)
 		}()
 
-		go func() {
+		go func(address string) {
 			logger.Log("transport", "HTTP", "addr", addr)
-			errs <- http.ListenAndServe(addr, h)
-		}()
+			errs <- http.ListenAndServe(address, h)
+		}(addr)
 
 		logger.Log("exit", <-errs)
 	},
