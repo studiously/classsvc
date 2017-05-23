@@ -11,4 +11,6 @@ var (
 	ErrNotFound = errors.New("not found")
 	ErrBadRequest = errors.New("the request is malformed or invalid")
 	ErrBadRouting = errors.New("inconsistent mapping between route and handler (programmer error)")
+	ErrUserEnrolled = errors.New("user is already enrolled")
+	ErrMustSetOwner = errors.New("new owner must be chosen before user can leave class")
 )

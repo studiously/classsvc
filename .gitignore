@@ -3,3 +3,4 @@ vendor/
 glide.lock
 classsvc
 .env
+/postgres

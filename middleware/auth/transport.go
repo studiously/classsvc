@@ -24,15 +24,14 @@ func ToHTTPContext() http.RequestFunc {
 		if !ok {
 			return ctx
 		}
-
-		return context.WithValue(ctx, OAuth2IntrospectionContextKey, token)
+		return context.WithValue(ctx, TokenContextKey, token)
 	}
 }
 
 // FromHTTPContext moves JWT token from context to request header. Particularly useful for clients.
 func FromHTTPContext() http.RequestFunc {
 	return func(ctx context.Context, r *stdhttp.Request) context.Context {
-		token, ok := ctx.Value(OAuth2IntrospectionContextKey).(string)
+		token, ok := ctx.Value(TokenContextKey).(string)
 		if ok {
 			r.Header.Add("Authorization", generateAuthHeaderFromToken(token))
 		}
@@ -51,7 +50,7 @@ func ToGRPCContext() grpc.ServerRequestFunc {
 
 		token, ok := extractTokenFromAuthHeader(authHeader[0])
 		if ok {
-			ctx = context.WithValue(ctx, OAuth2IntrospectionContextKey, token)
+			ctx = context.WithValue(ctx, TokenContextKey, token)
 		}
 
 		return ctx
@@ -61,7 +60,7 @@ func ToGRPCContext() grpc.ServerRequestFunc {
 // FromGRPCContext moves JWT token from context to gRPC metadata. Particularly useful for clients.
 func FromGRPCContext() grpc.ClientRequestFunc {
 	return func(ctx context.Context, md *metadata.MD) context.Context {
-		token, ok := ctx.Value(OAuth2IntrospectionContextKey).(string)
+		token, ok := ctx.Value(TokenContextKey).(string)
 		if ok {
 			// capital "Key" is illegal in HTTP/2.
 			(*md)["authorization"] = []string{generateAuthHeaderFromToken(token)}

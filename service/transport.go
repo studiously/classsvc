@@ -22,14 +22,16 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorLogger(logger),
 		httptransport.ServerErrorEncoder(encodeError),
+		httptransport.ServerBefore(auth.ToHTTPContext()),
 	}
+
 	// GET /classes/
 	// Get a list of classes the user has access to.
-	r.Methods("GET").Path("/classes/").Handler(httptransport.NewServer(
+	r.Methods("GET").Path("/classes/{class}").Handler(httptransport.NewServer(
 		auth.New(client.Introspection, "classes:get")(e.GetClassEndpoint),
 		decodeGetClassRequest,
 		encodeResponse,
-		append(options, httptransport.ServerBefore(auth.ToHTTPContext()))...,
+		append(options, httptransport.ServerBefore(auth.ToHTTPContext()))...
 	))
 
 	r.Methods("POST").Path("/classes/").Handler(httptransport.NewServer(
@@ -39,21 +41,167 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 		options...
 	))
 
+	r.Methods("GET").Path("/classes/").Handler(httptransport.NewServer(
+		auth.New(client.Introspection, "classes:list")(e.ListClassesEndpoint),
+		decodeGetClassesRequest,
+		encodeResponse,
+		options...
+	))
+
+	r.Methods("PATCH").Path("/classes/{class}").Handler(httptransport.NewServer(
+		auth.New(client.Introspection, "classes:update")(e.UpdateClassEndpoint),
+		decodeUpdateClassesRequest,
+		encodeResponse,
+		options...
+	))
+
+	r.Methods("DELETE").Path("/classes/{class}").Handler(httptransport.NewServer(
+		auth.New(client.Introspection, "classes:delete")(e.DeleteClassEndpoint),
+		decodeDeleteClassRequest,
+		encodeResponse,
+		options...
+	))
+
+	r.Methods("GET").Path("/classes/{class}/members").Handler(httptransport.NewServer(
+		auth.New(client.Introspection, "classes:list_members")(e.ListMembersEndpoint),
+		decodeListMembersRequest,
+		encodeResponse,
+		options...
+	))
+
+	r.Methods("GET").Path("/classes/{class}/join").Handler(httptransport.NewServer(
+		auth.New(client.Introspection, "classes:join")(e.JoinClassEndpoint),
+		decodeJoinClassRequest,
+		encodeResponse,
+		options...
+	))
+
+	leaveClassServer := httptransport.NewServer(
+		auth.New(client.Introspection, "classes:leave")(e.LeaveClassEndpoint),
+		decodeLeaveClassRequest,
+		encodeResponse,
+		options...
+	)
+	r.Methods("GET").Path("/classes/{class}/leave").Handler(leaveClassServer)
+	r.Methods("GET").Path("/classes/{class}/leave/{user}").Handler(leaveClassServer)
+
+	r.Methods("PATCH").Path("/classes/{class}/members/{user}").Handler(httptransport.NewServer(
+		auth.New(client.Introspection, "classes:members:update")(e.SetRoleEndpoint),
+		decodeSetRoleRequest,
+		encodeResponse,
+		options...
+	))
+
+	//r.Methods("DELETE").Path("/classes/{class}/leave").Handler(httptransport.NewServer(
+	//	auth.New(client.Introspection, "classes:leave")(e.DeleteMemberEndpoint),
+	//
+	//))
+
 	return r
 }
 
 func decodeGetClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
+	class, err := uuid.Parse(vars["class"])
 	if err != nil {
 		return getClassRequest{}, ErrBadRequest
 	}
-	return getClassRequest{id}, nil
+	return getClassRequest{class}, nil
 }
 
 func decodeCreateClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var req createClassRequest
-	if e := json.NewDecoder(r.Body).Decode(req.Class); e != nil {
+	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
+		return nil, e
+	}
+	return req, nil
+}
+
+func decodeGetClassesRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	return nil, nil
+}
+
+func decodeUpdateClassesRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req updateClassRequest
+	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
+		return nil, e
+	}
+	return req, nil
+}
+
+func decodeDeleteClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	class, err := uuid.Parse(vars["class"])
+	if err != nil {
+		return deleteClassRequest{}, ErrBadRequest
+	}
+	return deleteClassRequest{class}, nil
+}
+
+//func decodeGetMemberRequest(_ context.Context, r *http.Request) (interface{}, error) {
+//	vars := mux.Vars(r)
+//	member, err := uuid.Parse(vars["id"])
+//	if err != nil {
+//		return deleteClassRequest{}, ErrBadRequest
+//	}
+//	return getMemberRequest{member}, nil
+//}
+
+func decodeListMembersRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	class, err := uuid.Parse(vars["class"])
+	if err != nil {
+		return listMembersRequest{}, ErrBadRequest
+	}
+	return listMembersRequest{class}, nil
+}
+
+func decodeJoinClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	class, err := uuid.Parse(vars["class"])
+	if err != nil {
+		return joinClassRequest{}, ErrBadRequest
+	}
+	return joinClassRequest{
+		Class: class,
+	}, nil
+}
+
+func decodeLeaveClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req leaveClassRequest
+	vars := mux.Vars(r)
+	class, err := uuid.Parse(vars["class"])
+	if err != nil {
+		return leaveClassRequest{}, ErrBadRequest
+	}
+	req.Class = class
+	userS, ok := vars["user"]
+	user := uuid.Nil
+	if ok {
+		user, err = uuid.Parse(userS)
+		if err != nil {
+			return nil, ErrBadRequest
+		}
+	}
+	req.User = user
+	return req, nil
+}
+
+func decodeSetRoleRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req setRoleRequest
+	vars := mux.Vars(r)
+
+	class, err := uuid.Parse(vars["class"])
+	if err != nil {
+		return setRoleRequest{}, ErrBadRequest
+	}
+	req.Class = class
+	user, err := uuid.Parse(vars["user"])
+	if err != nil {
+		return nil, ErrBadRequest
+	}
+	req.User = user
+	if e := json.NewDecoder(r.Body).Decode(&req.Role); e != nil {
 		return nil, e
 	}
 	return req, nil

@@ -23,44 +23,43 @@ import (
 // construct individual endpoints using transport/http.NewClient, combine them
 // into an Endpoints, and return it to the caller as a Service.
 type Endpoints struct {
-	GetClassesEndpoint      endpoint.Endpoint
-	GetClassEndpoint        endpoint.Endpoint
-	CreateClassEndpoint     endpoint.Endpoint
-	UpdateClassEndpoint     endpoint.Endpoint
-	DeleteClassEndpoint     endpoint.Endpoint
-	GetMemberEndpoint       endpoint.Endpoint
-	GetMemberByUserEndpoint endpoint.Endpoint
-	CreateMemberEndpoint    endpoint.Endpoint
-	UpdateMemberEndpoint    endpoint.Endpoint
-	DeleteMemberEndpoint    endpoint.Endpoint
-	GetClassMembers         endpoint.Endpoint
+	ListClassesEndpoint endpoint.Endpoint
+	GetClassEndpoint    endpoint.Endpoint
+	CreateClassEndpoint endpoint.Endpoint
+	UpdateClassEndpoint endpoint.Endpoint
+	DeleteClassEndpoint endpoint.Endpoint
+	JoinClassEndpoint   endpoint.Endpoint
+	SetRoleEndpoint     endpoint.Endpoint
+	LeaveClassEndpoint  endpoint.Endpoint
+	ListMembersEndpoint endpoint.Endpoint
 }
 
 func MakeServerEndpoints(s Service) Endpoints {
 	return Endpoints{
-		GetClassesEndpoint:      MakeGetClassesEndpoint(s),
-		GetClassEndpoint:        MakeGetClassEndpoint(s),
-		CreateClassEndpoint:     MakeCreateClassEndpoint(s),
-		UpdateClassEndpoint:     MakeUpdateClassEndpoint(s),
-		DeleteClassEndpoint:     MakeDeleteClassEndpoint(s),
-		GetMemberEndpoint:       MakeGetMemberEndpoint(s),
+		ListClassesEndpoint: MakeListClassesEndpoint(s),
+		GetClassEndpoint:    MakeGetClassEndpoint(s),
+		CreateClassEndpoint: MakeCreateClassEndpoint(s),
+		UpdateClassEndpoint: MakeUpdateClassEndpoint(s),
+		DeleteClassEndpoint: MakeDeleteClassEndpoint(s),
+		//GetMemberEndpoint:   MakeGetMemberEndpoint(s),
 		//GetMemberByUserEndpoint: MakeGetMemberByUserEndpoint(s),
-		CreateMemberEndpoint:    MakeCreateMemberEndpoint(s),
-		UpdateMemberEndpoint:    MakeUpdateMemberEndpoint(s),
-		DeleteMemberEndpoint:    MakeDeleteMemberEndpoint(s),
-		GetClassMembers:         MakeGetClassMembersEndpoint(s),
+		JoinClassEndpoint:   MakeJoinClassEndpoint(s),
+		SetRoleEndpoint:     MakeSetRoleEndpoint(s),
+		LeaveClassEndpoint:  MakeLeaveClassEndpoint(s),
+		ListMembersEndpoint: MakeListMembersEndpoint(s),
 	}
 }
 
-func MakeGetClassesEndpoint(s Service) endpoint.Endpoint {
+func MakeListClassesEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		s.GetClasses(ctx, )
-		return getClassesResponse{}, nil
+		classes, err := s.ListClasses(ctx)
+		return listClassesResponse{classes, err}, nil
 	}
 }
 
-type getClassesResponse struct {
-	Error error `json:"error,omitempty"`
+type listClassesResponse struct {
+	Classes []uuid.UUID
+	Error   error `json:"error,omitempty"`
 }
 
 func MakeGetClassEndpoint(s Service) endpoint.Endpoint {
@@ -83,13 +82,13 @@ type getClassResponse struct {
 func MakeCreateClassEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(createClassRequest)
-		id, e := s.CreateClass(ctx, req.Class)
+		id, e := s.CreateClass(ctx, req.Name)
 		return createClassResponse{id, e}, nil
 	}
 }
 
 type createClassRequest struct {
-	*models.Class `json:"class"`
+	Name string `json:"name"`
 }
 
 type createClassResponse struct {
@@ -100,13 +99,15 @@ type createClassResponse struct {
 func MakeUpdateClassEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(updateClassRequest)
-		e := s.UpdateClass(ctx, req.Class)
+		e := s.UpdateClass(ctx, req.Class, req.Name, req.CurrentUnit)
 		return updateClassResponse{e}, nil
 	}
 }
 
 type updateClassRequest struct {
-	*models.Class `json:"class"`
+	Class       uuid.UUID
+	Name        string `json:"class"`
+	CurrentUnit uuid.UUID `json:"current_unit"`
 }
 
 type updateClassResponse struct {
@@ -129,22 +130,22 @@ type deleteClassResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
-func MakeGetMemberEndpoint(s Service) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(getMemberRequest)
-		member, e := s.GetMember(ctx, req.Id)
-		return getMemberResponse{member, e}, nil
-	}
-}
-
-type getMemberRequest struct {
-	Id uuid.UUID `json:"id"`
-}
-
-type getMemberResponse struct {
-	*models.Member
-	Error error `json:"error,omitempty"`
-}
+//func MakeGetMemberEndpoint(s Service) endpoint.Endpoint {
+//	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+//		req := request.(getMemberRequest)
+//		member, e := s.GetMember(ctx, req.Id)
+//		return getMemberResponse{member, e}, nil
+//	}
+//}
+//
+//type getMemberRequest struct {
+//	Id uuid.UUID `json:"id"`
+//}
+//
+//type getMemberResponse struct {
+//	*models.Member
+//	Error error `json:"error,omitempty"`
+//}
 
 //func MakeGetMemberByUserEndpoint(s Service) endpoint.Endpoint {
 //	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
@@ -164,64 +165,66 @@ type getMemberResponse struct {
 //	Error error `json:"error,omitempty"`
 //}
 
-func MakeCreateMemberEndpoint(s Service) endpoint.Endpoint {
+func MakeJoinClassEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(createMemberRequest)
-		id, e := s.CreateMember(ctx, req.Member)
-		return createMemberResponse{id, e}, nil
+		req := request.(joinClassRequest)
+		e := s.JoinClass(ctx, req.Class)
+		return joinClassResponse{e}, nil
 	}
 }
 
-type createMemberRequest struct {
-	*models.Member `json:"member"`
+type joinClassRequest struct {
+	Class uuid.UUID `json:"class"`
 }
 
-type createMemberResponse struct {
-	Id    uuid.UUID `json:"id"`
+type joinClassResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
-func MakeDeleteMemberEndpoint(s Service) endpoint.Endpoint {
+func MakeLeaveClassEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(deleteMemberRequest)
-		e := s.DeleteMember(ctx, req.Id)
-		return deleteMemberResponse{e}, nil
+		req := request.(leaveClassRequest)
+		e := s.LeaveClass(ctx, req.User, req.Class)
+		return leaveClassResponse{e}, nil
 	}
 }
 
-type deleteMemberRequest struct {
-	Id uuid.UUID `json:"id"`
+type leaveClassRequest struct {
+	User  uuid.UUID `json:"user,omitempty"`
+	Class uuid.UUID `json:"class"`
 }
 
-type deleteMemberResponse struct {
+type leaveClassResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
-func MakeUpdateMemberEndpoint(s Service) endpoint.Endpoint {
+func MakeSetRoleEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(updateMemberRequest)
-		e := s.UpdateMember(ctx, req.Member)
-		return updateMemberResponse{e}, nil
+		req := request.(setRoleRequest)
+		e := s.SetRole(ctx, req.User, req.Class, req.Role)
+		return setRoleResponse{e}, nil
 	}
 }
 
-type updateMemberRequest struct {
-	*models.Member `json:"member"`
+type setRoleRequest struct {
+	User  uuid.UUID `json:"user"`
+	Class uuid.UUID `json:"class"`
+	Role  models.UserRole `json:"role"`
 }
 
-type updateMemberResponse struct {
+type setRoleResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
-func MakeGetClassMembersEndpoint(s Service) endpoint.Endpoint {
+func MakeListMembersEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(getClassMembersRequest)
-		members, e := s.GetClassMembers(ctx, req.Class)
+		req := request.(listMembersRequest)
+		members, e := s.ListMembers(ctx, req.Class)
 		return getClassMembersResponse{members, e}, nil
 	}
 }
 
-type getClassMembersRequest struct {
+type listMembersRequest struct {
 	Class uuid.UUID `json:"id"`
 }
 

@@ -76,19 +76,15 @@ A Hydra server is required to perform token introspection and thus authorization
 			var driver = os.Getenv("DATABASE_DRIVER")
 			var config = os.Getenv("DATABASE_CONFIG")
 
-			logger.Log("driver", driver, "config", config)
-
 			db, err := sql.Open(driver, config)
 			if err != nil {
 				logrus.Fatalln("database connection failed", err)
 			}
 			if err := pingDatabase(db); err != nil {
-				logrus.Errorln(err)
-				logrus.Fatalln("database ping attempts failed")
+				logrus.WithError(err).Fatalln("database ping attempts failed")
 			}
 			if err := setupDatabase(driver, db); err != nil {
-				logrus.Errorln(err)
-				logrus.Fatalln("migration failed")
+				logrus.WithError(err).Fatalln("migration failed")
 			}
 			s = service.NewPostgres(db)
 		}
@@ -97,12 +93,16 @@ A Hydra server is required to perform token introspection and thus authorization
 		if err != nil {
 			tlsVerify = false
 		}
+		sdk.Connect()
 		client, err := sdk.Connect(
 			sdk.ClientID(os.Getenv("HYDRA_CLIENT_ID")),
 			sdk.ClientSecret(os.Getenv("HYDRA_CLIENT_SECRET")),
 			sdk.ClusterURL(os.Getenv("HYDRA_CLUSTER_URL")),
 			sdk.SkipTLSVerify(tlsVerify),
 		)
+		if err != nil {
+			logrus.WithError(err).Fatal("could not connect to hydra")
+		}
 		var h = service.MakeHTTPHandler(s, logger, client)
 		errs := make(chan error)
 		go func() {

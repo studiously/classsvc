@@ -11,10 +11,10 @@ import (
 
 // Member represents a row from 'public.members'.
 type Member struct {
-	ID      uuid.UUID  `json:"id"`       // id
-	UserID  uuid.UUID  `json:"user_id"`  // user_id
-	ClassID uuid.UUID  `json:"class_id"` // class_id
-	Role    MemberRole `json:"role"`     // role
+	ID      uuid.UUID `json:"id"`       // id
+	UserID  uuid.UUID `json:"user_id"`  // user_id
+	ClassID uuid.UUID `json:"class_id"` // class_id
+	Role    UserRole  `json:"role"`     // role
 
 	// xo fields
 	_exists, _deleted bool

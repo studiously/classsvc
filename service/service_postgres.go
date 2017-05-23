@@ -29,7 +29,7 @@ func (s *postgresService) GetClass(ctx context.Context, classId uuid.UUID) (*mod
 	return models.ClassByID(s, classId)
 }
 
-func (s *postgresService) CreateClass(ctx context.Context, class *models.Class) (uuid.UUID, error) {
+func (s *postgresService) CreateClass(ctx context.Context, name string) (uuid.UUID, error) {
 	introspection := ctx.Value(auth.OAuth2IntrospectionContextKey).(oauth2.Introspection)
 	subj, err := uuid.Parse(introspection.Subject)
 	if err != nil {
@@ -39,8 +39,12 @@ func (s *postgresService) CreateClass(ctx context.Context, class *models.Class) 
 	if err != nil {
 		return uuid.Nil, err
 	}
-	class.ID = uuid.New()
-	class.CurrentUnit = uuid.Nil
+	class := models.Class{
+		ID:          uuid.New(),
+		Name:        name,
+		CurrentUnit: uuid.Nil,
+		Active:      true,
+	}
 	err = class.Save(tx)
 	if err != nil {
 		tx.Rollback()
@@ -50,7 +54,7 @@ func (s *postgresService) CreateClass(ctx context.Context, class *models.Class) 
 		ID:      uuid.New(),
 		UserID:  subj,
 		ClassID: class.ID,
-		Role:    models.MemberRoleAdministrator,
+		Role:    models.UserRoleAdministrator,
 	}
 	err = member.Save(tx)
 	if err != nil {
@@ -61,13 +65,13 @@ func (s *postgresService) CreateClass(ctx context.Context, class *models.Class) 
 	return class.ID, err
 }
 
-func (s *postgresService) UpdateClass(ctx context.Context, class *models.Class) error {
+func (s *postgresService) UpdateClass(ctx context.Context, id uuid.UUID, name string, currentUnit uuid.UUID) error {
 	introspection := ctx.Value(auth.OAuth2IntrospectionContextKey).(oauth2.Introspection)
 	subj, err := uuid.Parse(introspection.Subject)
 	if err != nil {
 		return ErrUnauthenticated
 	}
-	member, err := models.MemberByUserIDClassID(s, subj, class.ID)
+	member, err := models.MemberByUserIDClassID(s, subj, id)
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
@@ -76,8 +80,18 @@ func (s *postgresService) UpdateClass(ctx context.Context, class *models.Class) 
 			return err
 		}
 	}
-	if member.Role != models.MemberRoleAdministrator {
+	if member.Role < models.UserRoleAdministrator {
 		return ErrForbidden
+	}
+	class, err := models.ClassByID(s, id)
+	if err != nil {
+		return err
+	}
+	if name != "" {
+		class.Name = name
+	}
+	if currentUnit != uuid.Nil {
+		class.CurrentUnit = currentUnit // TODO need to validate current unit.
 	}
 	return class.Update(s)
 }
@@ -93,7 +107,7 @@ func (s *postgresService) DeleteClass(ctx context.Context, classId uuid.UUID) er
 			return err
 		}
 	}
-	if member.Role != models.MemberRoleAdministrator {
+	if member.Role != models.UserRoleAdministrator {
 		return ErrForbidden
 	}
 	class, err := models.ClassByID(s, classId)
@@ -116,8 +130,8 @@ func (s *postgresService) DeleteClass(ctx context.Context, classId uuid.UUID) er
 	return err
 }
 
-func (s *postgresService) GetClassMembers(ctx context.Context, classId uuid.UUID) ([]*models.Member, error) {
-	_, err := models.MemberByUserIDClassID(s, subj(ctx), classId)
+func (s *postgresService) ListMembers(ctx context.Context, class uuid.UUID) ([]*models.Member, error) {
+	_, err := models.MemberByUserIDClassID(s, subj(ctx), class)
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
@@ -127,30 +141,30 @@ func (s *postgresService) GetClassMembers(ctx context.Context, classId uuid.UUID
 			return nil, err
 		}
 	}
-	return models.MembersByClassID(s, classId)
+	return models.MembersByClassID(s, class)
 }
 
-func (s *postgresService) GetMember(ctx context.Context, id uuid.UUID) (*models.Member, error) {
-	rm, err := models.MemberByID(s, id)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return nil, ErrNotFound
-		default:
-			return nil, err
-		}
-	}
-	m, err := models.MemberByUserIDClassID(s, subj(ctx), rm.ClassID)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return nil, ErrForbidden
-		default:
-			return nil, err
-		}
-	}
-	return m, nil
-}
+//func (s *postgresService) GetMember(ctx context.Context, id uuid.UUID) (*models.Member, error) {
+//	rm, err := models.MemberByID(s, id)
+//	if err != nil {
+//		switch err {
+//		case sql.ErrNoRows:
+//			return nil, ErrNotFound
+//		default:
+//			return nil, err
+//		}
+//	}
+//	m, err := models.MemberByUserIDClassID(s, subj(ctx), rm.ClassID)
+//	if err != nil {
+//		switch err {
+//		case sql.ErrNoRows:
+//			return nil, ErrForbidden
+//		default:
+//			return nil, err
+//		}
+//	}
+//	return m, nil
+//}
 
 //func (s *postgresService) GetMemberByUser(ctx context.Context, userId uuid.UUID, classId uuid.UUID) (*models.Member, error) {
 //	introspection := ctx.Value(auth.OAuth2IntrospectionContextKey).(oauth2.Introspection)
@@ -162,48 +176,104 @@ func (s *postgresService) GetMember(ctx context.Context, id uuid.UUID) (*models.
 //	return models.MemberByUserIDClassID(s, userId, classId)
 //}
 
-func (s *postgresService) CreateMember(ctx context.Context, member *models.Member) (uuid.UUID, error) {
-	member.ID = uuid.New()
-	member.UserID = subj(ctx)
-	return member.ID, member.Save(s)
+func (s *postgresService) JoinClass(ctx context.Context, class uuid.UUID) error {
+	_, err := models.MemberByUserIDClassID(s, subj(ctx), class)
+	if err == nil {
+		return ErrUserEnrolled
+	}
+	member := models.Member{
+		ID:      uuid.New(),
+		UserID:  subj(ctx),
+		ClassID: class,
+		Role:    models.UserRoleStudent,
+	}
+	return member.Save(s)
 }
 
-func (s *postgresService) DeleteMember(ctx context.Context, id uuid.UUID) error {
-	member, err := models.MemberByID(s, id)
+func (s *postgresService) LeaveClass(ctx context.Context, user uuid.UUID, class uuid.UUID) error {
+	self, err := models.MemberByUserIDClassID(s, subj(ctx), class)
 	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			return ErrNotFound
-		default:
+		return err
+	}
+	if user != subj(ctx) {
+		if self.Role != models.UserRoleAdministrator {
+			return ErrForbidden
+		}
+		target, err := models.MemberByUserIDClassID(s, user, class)
+		if err != nil {
+			switch err {
+			case sql.ErrNoRows:
+				return ErrNotFound
+			default:
+				return err
+			}
+		}
+		if target.Role >= self.Role {
+			// Can't remove equal or superior.
+			return ErrForbidden
+		}
+		return target.Delete(s)
+	} else {
+		if self.Role == models.UserRoleOwner {
+			return ErrMustSetOwner
+		}
+		return self.Delete(s)
+	}
+}
+
+func (s *postgresService) SetRole(ctx context.Context, user uuid.UUID, class uuid.UUID, role models.UserRole) error {
+	// Can't set own role directly
+	if user == subj(ctx) {
+		return ErrForbidden
+	}
+	self, err := models.MemberByUserIDClassID(s, subj(ctx), class)
+	if err != nil {
+		return err
+	}
+	target, err := models.MemberByUserIDClassID(s, user, class)
+	if err != nil {
+		return err
+	}
+	// Can't set role of users superior or equal.
+	if self.Role <= target.Role {
+		return ErrForbidden
+	}
+	// Special case: setting another owner means making the current owner an administrator.
+	if self.Role == models.UserRoleOwner && role == models.UserRoleOwner {
+		tx, err := s.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false})
+		if err != nil {
 			return err
 		}
+		self.Role = models.UserRoleAdministrator
+		err = self.Save(tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		target.Role = models.UserRoleOwner
+		err = target.Save(tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		err = tx.Commit()
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		return nil
 	}
-	if member.UserID.String() != subj(ctx).String() {
-		return ErrForbidden
-	}
-
-	err = member.Delete(s)
-	return err
+	target.Role = role
+	return target.Save(s)
 }
-
-func (s *postgresService) UpdateMember(ctx context.Context, member *models.Member) error {
-	if member.ID.String() != subj(ctx).String() {
-		return ErrForbidden
-	}
-	return member.Update(s)
-}
-
-func (s *postgresService) GetClasses(ctx context.Context) ([]*models.Class, error) {
+func (s *postgresService) ListClasses(ctx context.Context) ([]uuid.UUID, error) {
 	members, err := models.MembersByUserID(s, subj(ctx))
 	if err != nil {
 		return nil, err
 	}
-	var results []*models.Class
+	var results []uuid.UUID
 	for i := range members {
-		results[i], err = models.ClassByID(s, members[i].ClassID)
-		if err != nil {
-			return nil, err
-		}
+		results[i] = members[i].ClassID
 	}
 	return results, nil
 }
