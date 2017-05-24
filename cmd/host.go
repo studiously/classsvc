@@ -100,6 +100,7 @@ A Hydra server is required to perform token introspection and thus authorization
 			sdk.ClientSecret(viper.GetString("hydra.client.secret")),
 			sdk.ClusterURL(viper.GetString("hydra.cluster_url")),
 			sdk.SkipTLSVerify(viper.GetBool("hydra.tls_verify")),
+			sdk.Scopes(),
 		)
 		if err != nil {
 			logger.Log("msg", "could not connect to Hydra cluster", "error", err, "cluster_url", viper.GetString("hydra.cluster_url"))
