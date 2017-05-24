@@ -1,5 +1,5 @@
 hash: e64679225b6200d5c4366cfacbe1a59afb8f082c7733d8c66434ea8d5cfcefb7
-updated: 2017-05-22T13:50:39.154813652-05:00
+updated: 2017-05-24T10:09:46.860842552-05:00
 imports:
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
@@ -28,7 +28,7 @@ imports:
 - name: github.com/go-stack/stack
   version: 7a2f19628aabfe68f0766b59e74d6315f8347d22
 - name: github.com/golang/protobuf
-  version: fec3b39b059c0f88fa6b20f5ed012b1aa203a8b4
+  version: 7a211bcf3bce0e3f1d74f9894916e6f116ae83b4
   subpackages:
   - proto
   - ptypes/any
@@ -76,7 +76,7 @@ imports:
 - name: github.com/magiconair/properties
   version: 51463bfca2576e06c62a8504b5c0f06d61312647
 - name: github.com/mitchellh/mapstructure
-  version: cc8532a8e9a55ea36402aa21efdf403a60d34096
+  version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/moul/http2curl
   version: 4e24498b31dba4683efb9d35c1c8a91e2eda28c8
 - name: github.com/oleiade/reflections
@@ -99,7 +99,7 @@ imports:
 - name: github.com/ory/herodot
   version: ef15ccfb8c16051feca9ec289286732f8d288fec
 - name: github.com/ory/hydra
-  version: 0d64c6792326dfe379a4b995fb1cb9fec128bbaa
+  version: 78ea5219e661df5be50e04ad02320ec703682776
   subpackages:
   - client
   - config
@@ -130,7 +130,7 @@ imports:
   subpackages:
   - difflib
 - name: github.com/rubenv/sql-migrate
-  version: 38004e7a77f2b350ea8467038dca66073d907725
+  version: 42c30aabf72921b83678a3d0680fd6cd46682f1b
   subpackages:
   - sqlparse
 - name: github.com/Sirupsen/logrus
@@ -144,7 +144,7 @@ imports:
 - name: github.com/spf13/cobra
   version: ca57f0f5dba473a8a58765d16d7e811fb8027add
 - name: github.com/spf13/jwalterweatherman
-  version: 8f07c835e5cc1450c082fe3a439cf87b0cbb2d99
+  version: 0efa5202c04663c757d84f90f5219c1250baf94f
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: github.com/spf13/viper
@@ -159,12 +159,12 @@ imports:
   - assert
   - require
 - name: golang.org/x/crypto
-  version: 6c586e17d90a7d08bbbc4069984180dce3b04117
+  version: 7e9105388ebff089b3f99f0ef676ea55a6da3a7e
   subpackages:
   - bcrypt
   - blowfish
 - name: golang.org/x/net
-  version: 513929065c19401a1c7b76ecd942f9f86a0c061b
+  version: 1a26cf06691746ee35aa7113c9b37289afc7ea28
   subpackages:
   - context
   - context/ctxhttp
@@ -191,7 +191,7 @@ imports:
   - unicode/bidi
   - unicode/norm
 - name: google.golang.org/appengine
-  version: 170382fa85b10b94728989dfcf6cc818b335c952
+  version: a2f4131514e563cedfdb6e7d267df9ad48591e93
   subpackages:
   - internal
   - internal/base
@@ -201,7 +201,7 @@ imports:
   - internal/urlfetch
   - urlfetch
 - name: google.golang.org/genproto
-  version: bb3573be0c484136831138976d444b8754777aff
+  version: d80a6e20e776b0b17a324d0ba1ab50a39c8e8944
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc

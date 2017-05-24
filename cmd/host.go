@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -35,7 +34,9 @@ import (
 	"github.com/ory/hydra/sdk"
 	"github.com/rubenv/sql-migrate"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/studiously/classsvc/ddl"
+	. "github.com/studiously/classsvc/errors"
 	"github.com/studiously/classsvc/service"
 )
 
@@ -73,36 +74,38 @@ A Hydra server is required to perform token introspection and thus authorization
 		var s service.Service
 		{
 			// Set up database
-			var driver = os.Getenv("DATABASE_DRIVER")
-			var config = os.Getenv("DATABASE_CONFIG")
+			var driver = viper.GetString("database.driver")
+			var config = viper.GetString("database.config")
 
 			db, err := sql.Open(driver, config)
 			if err != nil {
-				logrus.Fatalln("database connection failed", err)
+				logger.Log("msg", "database connection failed", "error", err)
+				os.Exit(-1)
 			}
 			if err := pingDatabase(db); err != nil {
-				logrus.WithError(err).Fatalln("database ping attempts failed")
+				logger.Log("msg", "database ping attempts failed")
+				os.Exit(-1)
 			}
 			if err := setupDatabase(driver, db); err != nil {
-				logrus.WithError(err).Fatalln("migration failed")
+				logger.Log("msg", "database migrations failed", "error", err)
+				os.Exit(-1)
 			}
+
 			s = service.NewPostgres(db)
 		}
-		// Set up Hydra
-		tlsVerify, err := strconv.ParseBool(os.Getenv("HYDRA_TLS_VERIFY"))
-		if err != nil {
-			tlsVerify = false
-		}
+
 		sdk.Connect()
 		client, err := sdk.Connect(
-			sdk.ClientID(os.Getenv("HYDRA_CLIENT_ID")),
-			sdk.ClientSecret(os.Getenv("HYDRA_CLIENT_SECRET")),
-			sdk.ClusterURL(os.Getenv("HYDRA_CLUSTER_URL")),
-			sdk.SkipTLSVerify(tlsVerify),
+			sdk.ClientID(viper.GetString("hydra.client.id")),
+			sdk.ClientSecret(viper.GetString("hydra.client.secret")),
+			sdk.ClusterURL(viper.GetString("hydra.cluster_url")),
+			sdk.SkipTLSVerify(viper.GetBool("hydra.tls_verify")),
 		)
 		if err != nil {
-			logrus.WithError(err).Fatal("could not connect to hydra")
+			logger.Log("msg", "could not connect to Hydra cluster", "error", err, "cluster_url", viper.GetString("hydra.cluster_url"))
+			os.Exit(-1)
 		}
+
 		var h = service.MakeHTTPHandler(s, logger, client)
 		errs := make(chan error)
 		go func() {
@@ -123,15 +126,8 @@ A Hydra server is required to perform token introspection and thus authorization
 func init() {
 	RootCmd.AddCommand(hostCmd)
 
-	// Here you will define your flags and configuration settings.
+	viper.SetDefault("hydra.tls_verify", false)
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// hostCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// hostCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	hostCmd.Flags().StringVarP(&addr, "addr", "a", ":8080", "HTTP bind address")
 }
 
@@ -151,8 +147,7 @@ func pingDatabase(db *sql.DB) (err error) {
 		if err == nil {
 			return
 		}
-		logrus.Infof("database ping failed. retry in 1s")
 		time.Sleep(time.Second)
 	}
-	return
+	return ErrDatabaseUnresponsive
 }

@@ -26,6 +26,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"strings"
 )
 
 var cfgFile string
@@ -67,6 +68,7 @@ func initConfig() {
 
 	viper.SetConfigName(".classsvc") // name of config file (without extension)
 	viper.AddConfigPath("$HOME")     // adding home directory as first search path
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()             // read in environment variables that match
 
 	// If a config file is found, read it in.
