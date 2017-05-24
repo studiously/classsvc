@@ -28,56 +28,56 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 	// GET /classes/
 	// Get a list of classes the user has access to.
 	r.Methods("GET").Path("/classes/{class}").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes:get")(e.GetClassEndpoint),
+		auth.New(client.Introspection, "classes.get")(e.GetClassEndpoint),
 		decodeGetClassRequest,
 		encodeResponse,
 		append(options, httptransport.ServerBefore(auth.ToHTTPContext()))...
 	))
 
 	r.Methods("POST").Path("/classes/").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes:new")(e.CreateClassEndpoint),
+		auth.New(client.Introspection, "classes.new")(e.CreateClassEndpoint),
 		decodeCreateClassRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("GET").Path("/classes/").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes:list")(e.ListClassesEndpoint),
+		auth.New(client.Introspection, "classes.list")(e.ListClassesEndpoint),
 		decodeGetClassesRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("PATCH").Path("/classes/{class}").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes:update")(e.UpdateClassEndpoint),
+		auth.New(client.Introspection, "classes.update")(e.UpdateClassEndpoint),
 		decodeUpdateClassesRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("DELETE").Path("/classes/{class}").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes:delete")(e.DeleteClassEndpoint),
+		auth.New(client.Introspection, "classes.delete")(e.DeleteClassEndpoint),
 		decodeDeleteClassRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("GET").Path("/classes/{class}/members").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes:list_members")(e.ListMembersEndpoint),
+		auth.New(client.Introspection, "classes.list_members")(e.ListMembersEndpoint),
 		decodeListMembersRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("GET").Path("/classes/{class}/join").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes:join")(e.JoinClassEndpoint),
+		auth.New(client.Introspection, "classes.join")(e.JoinClassEndpoint),
 		decodeJoinClassRequest,
 		encodeResponse,
 		options...
 	))
 
 	leaveClassServer := httptransport.NewServer(
-		auth.New(client.Introspection, "classes:leave")(e.LeaveClassEndpoint),
+		auth.New(client.Introspection, "classes.leave")(e.LeaveClassEndpoint),
 		decodeLeaveClassRequest,
 		encodeResponse,
 		options...
@@ -86,14 +86,14 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 	r.Methods("GET").Path("/classes/{class}/leave/{user}").Handler(leaveClassServer)
 
 	r.Methods("PATCH").Path("/classes/{class}/members/{user}").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes:members:update")(e.SetRoleEndpoint),
+		auth.New(client.Introspection, "classes.members:update")(e.SetRoleEndpoint),
 		decodeSetRoleRequest,
 		encodeResponse,
 		options...
 	))
 
 	//r.Methods("DELETE").Path("/classes/{class}/leave").Handler(httptransport.NewServer(
-	//	auth.New(client.Introspection, "classes:leave")(e.DeleteMemberEndpoint),
+	//	auth.New(client.Introspection, "classes.leave")(e.DeleteMemberEndpoint),
 	//
 	//))
 

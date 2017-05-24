@@ -106,7 +106,7 @@ func ddl_genGo() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "ddl_gen.go", size: 0, mode: os.FileMode(420), modTime: time.Unix(1495559102, 0)}
+	info := bindataFileInfo{name: "ddl_gen.go", size: 0, mode: os.FileMode(436), modTime: time.Unix(1495586925, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -146,7 +146,7 @@ func postgres2Sql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "postgres/2.sql", size: 210, mode: os.FileMode(420), modTime: time.Unix(1495559101, 0)}
+	info := bindataFileInfo{name: "postgres/2.sql", size: 210, mode: os.FileMode(436), modTime: time.Unix(1495586879, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
