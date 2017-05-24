@@ -1,27 +1,32 @@
 -- +migrate Up
-CREATE TYPE member_role AS ENUM('student','moderator','teacher','administrator');
+CREATE TYPE USER_ROLE AS ENUM ('student', 'moderator', 'teacher', 'administrator', 'owner');
 
 CREATE TABLE classes (
-  id uuid NOT NULL,
-  name text NOT NULL,
-  current_unit uuid
+  id           UUID NOT NULL,
+  name         TEXT NOT NULL,
+  current_unit UUID
 );
 
 ALTER TABLE ONLY classes
   ADD CONSTRAINT classes_pkey PRIMARY KEY (id);
 
 CREATE TABLE members (
-  id uuid NOT NULL,
-  user_id uuid NOT NULL,
-  class_id uuid NOT NULL,
-  role member_role DEFAULT 'student'::member_role NOT NULL
+  id       UUID                                     NOT NULL,
+  user_id  UUID                                     NOT NULL,
+  class_id UUID                                     NOT NULL,
+  role     USER_ROLE DEFAULT 'student' :: USER_ROLE NOT NULL,
+  FOREIGN KEY ("class_id") REFERENCES classes ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 ALTER TABLE ONLY members
   ADD CONSTRAINT members_pkey PRIMARY KEY (id);
-CREATE INDEX members_class_id_idx ON members USING btree (class_id);
-CREATE UNIQUE INDEX members_user_id_class_id_idx ON members USING btree (user_id, class_id);
-CREATE INDEX members_user_id_idx ON members USING btree (user_id);
+CREATE INDEX members_class_id_idx
+  ON members USING BTREE (class_id);
+CREATE UNIQUE INDEX members_user_id_class_id_idx
+  ON members USING BTREE (user_id, class_id);
+CREATE INDEX members_user_id_idx
+  ON members USING BTREE (user_id);
 
 -- +migrate Down
 DROP TABLE classes;
 DROP TABLE members;
+DROP TYPE USER_ROLE;
