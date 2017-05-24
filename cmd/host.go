@@ -52,17 +52,19 @@ This command exposes several environmental variables for controls. You can set e
 
 All possible controls are listed below. The host process additionally exposes a few flags, which are listed below the controls section.
 
-CORE CONTROLS
+Core Controls
 =============
-- DATABASE_URL: A URL to a persistent backend. Classsvc supports PostgreSQL currently.
+- DATABASE_DRIVER: The driver to use with the database. Only 'postgres' is currently supported.
+- DATABASE_CONFIG: A URL to a persistent backend.
 
-HYDRA CONTROLS
+Hydra Controls
 ==============
 A Hydra server is required to perform token introspection and thus authorization. Most endpoints (excepting health and unauthenticated ones) will fail without a valid Hydra server.
 
 - HYDRA_CLIENT_ID: ID for Hydra client.
 - HYDRA_CLIENT_SECRET: Secret for Hydra client.
 - HYDRA_CLUSTER_URL: URL of Hydra cluster.
+- HYDRA_TLS_VERIFY: Whether the client should verify Hydra's TLS.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		var logger log.Logger
@@ -127,7 +129,7 @@ A Hydra server is required to perform token introspection and thus authorization
 func init() {
 	RootCmd.AddCommand(hostCmd)
 
-	viper.SetDefault("hydra.tls_verify", false)
+	viper.SetDefault("hydra.tls_verify", true)
 
 	hostCmd.Flags().StringVarP(&addr, "addr", "a", ":8080", "HTTP bind address")
 }
