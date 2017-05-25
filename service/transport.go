@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/ory/hydra/sdk"
 	. "github.com/studiously/classsvc/errors"
-	"github.com/studiously/classsvc/middleware/auth"
+	"github.com/studiously/introspector"
 )
 
 func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Handler {
@@ -22,62 +22,62 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorLogger(logger),
 		httptransport.ServerErrorEncoder(encodeError),
-		httptransport.ServerBefore(auth.ToHTTPContext()),
+		httptransport.ServerBefore(introspector.ToHTTPContext()),
 	}
 
 	// GET /classes/
 	// Get a list of classes the user has access to.
 	r.Methods("GET").Path("/classes/{class}").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes.get")(e.GetClassEndpoint),
+		introspector.New(client.Introspection, "classes.get")(e.GetClassEndpoint),
 		decodeGetClassRequest,
 		encodeResponse,
-		append(options, httptransport.ServerBefore(auth.ToHTTPContext()))...
+		append(options, httptransport.ServerBefore(introspector.ToHTTPContext()))...
 	))
 
 	r.Methods("POST").Path("/classes/").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes.new")(e.CreateClassEndpoint),
+		introspector.New(client.Introspection, "classes.new")(e.CreateClassEndpoint),
 		decodeCreateClassRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("GET").Path("/classes/").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes.list")(e.ListClassesEndpoint),
+		introspector.New(client.Introspection, "classes.list")(e.ListClassesEndpoint),
 		decodeGetClassesRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("PATCH").Path("/classes/{class}").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes.update")(e.UpdateClassEndpoint),
+		introspector.New(client.Introspection, "classes.update")(e.UpdateClassEndpoint),
 		decodeUpdateClassesRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("DELETE").Path("/classes/{class}").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes.delete")(e.DeleteClassEndpoint),
+		introspector.New(client.Introspection, "classes.delete")(e.DeleteClassEndpoint),
 		decodeDeleteClassRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("GET").Path("/classes/{class}/members").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes.list_members")(e.ListMembersEndpoint),
+		introspector.New(client.Introspection, "classes.list_members")(e.ListMembersEndpoint),
 		decodeListMembersRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("GET").Path("/classes/{class}/join").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes.join")(e.JoinClassEndpoint),
+		introspector.New(client.Introspection, "classes.join")(e.JoinClassEndpoint),
 		decodeJoinClassRequest,
 		encodeResponse,
 		options...
 	))
 
 	leaveClassServer := httptransport.NewServer(
-		auth.New(client.Introspection, "classes.leave")(e.LeaveClassEndpoint),
+		introspector.New(client.Introspection, "classes.leave")(e.LeaveClassEndpoint),
 		decodeLeaveClassRequest,
 		encodeResponse,
 		options...
@@ -86,14 +86,14 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 	r.Methods("GET").Path("/classes/{class}/leave/{user}").Handler(leaveClassServer)
 
 	r.Methods("PATCH").Path("/classes/{class}/members/{user}").Handler(httptransport.NewServer(
-		auth.New(client.Introspection, "classes.members:update")(e.SetRoleEndpoint),
+		introspector.New(client.Introspection, "classes.members:update")(e.SetRoleEndpoint),
 		decodeSetRoleRequest,
 		encodeResponse,
 		options...
 	))
 
 	//r.Methods("DELETE").Path("/classes/{class}/leave").Handler(httptransport.NewServer(
-	//	auth.New(client.Introspection, "classes.leave")(e.DeleteMemberEndpoint),
+	//	introspector.New(client.Introspection, "classes.leave")(e.DeleteMemberEndpoint),
 	//
 	//))
 
