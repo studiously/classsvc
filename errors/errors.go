@@ -10,8 +10,6 @@ var (
 	ErrForbidden = errors.New("client does not have correct scope for request")
 	// ErrNotFound is returned when a resource was not found or, in sensitive areas, if the client is not authorized to perform an action.
 	ErrNotFound     = errors.New("not found")
-	ErrBadRequest   = errors.New("the request is malformed or invalid")
-	ErrBadRouting   = errors.New("inconsistent mapping between route and handler (programmer error)")
 	ErrUserEnrolled = errors.New("user is already enrolled")
 	ErrMustSetOwner = errors.New("new owner must be chosen before user can leave class")
 )

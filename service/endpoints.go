@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"net/url"
+	"strings"
 
 	"github.com/go-kit/kit/endpoint"
+	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/google/uuid"
 	"github.com/studiously/classsvc/models"
 )
@@ -50,6 +53,38 @@ func MakeServerEndpoints(s Service) Endpoints {
 	}
 }
 
+// MakeClientEndpoints returns an Endpoints struct where each endpoint invokes
+// the corresponding method on the remote instance, via a transport/http.Client.
+// Useful in a profilesvc client.
+func MakeClientEndpoints(instance string) (Endpoints, error) {
+	if !strings.HasPrefix(instance, "http") {
+		instance = "http://" + instance
+	}
+	tgt, err := url.Parse(instance)
+	if err != nil {
+		return Endpoints{}, err
+	}
+	tgt.Path = ""
+
+	options := []httptransport.ClientOption{}
+
+	// Note that the request encoders need to modify the request URL, changing
+	// the path and method. That's fine: we simply need to provide specific
+	// encoders for each endpoint.
+
+	return Endpoints{
+		ListClassesEndpoint: httptransport.NewClient("GET", tgt, encodeListClassesRequest, decodeListClassesResponse, options...).Endpoint(),
+		GetClassEndpoint:    httptransport.NewClient("GET", tgt, encodeGetClassRequest, decodeGetClassResponse, options...).Endpoint(),
+		CreateClassEndpoint: httptransport.NewClient("POST", tgt, encodeCreateClassRequest, decodeCreateClassResponse, options...).Endpoint(),
+		UpdateClassEndpoint: httptransport.NewClient("PATCH", tgt, encodeUpdateClassRequest, decodeUpdateClassResponse, options...).Endpoint(),
+		DeleteClassEndpoint: httptransport.NewClient("DELETE", tgt, encodeDeleteClassRequest, decodeDeleteClassResponse, options...).Endpoint(),
+		JoinClassEndpoint:   httptransport.NewClient("POST", tgt, encodeJoinClassRequest, decodeJoinClassResponse, options...).Endpoint(),
+		SetRoleEndpoint:     httptransport.NewClient("PATCH", tgt, encodeSetRoleRequest, decodeSetRoleResponse, options...).Endpoint(),
+		LeaveClassEndpoint:  httptransport.NewClient("DELETE", tgt, encodeLeaveClassRequest, decodeLeaveClassResponse, options...).Endpoint(),
+		ListMembersEndpoint: httptransport.NewClient("GET", tgt, encodeListMembersRequest, decodeListMembersResponse, options...).Endpoint(),
+	}, nil
+}
+
 func MakeListClassesEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		classes, err := s.ListClasses(ctx)
@@ -60,6 +95,10 @@ func MakeListClassesEndpoint(s Service) endpoint.Endpoint {
 type listClassesResponse struct {
 	Classes []uuid.UUID
 	Error   error `json:"error,omitempty"`
+}
+
+func (r listClassesResponse) error() error {
+	return r.Error
 }
 
 func MakeGetClassEndpoint(s Service) endpoint.Endpoint {
@@ -79,6 +118,10 @@ type getClassResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
+func (r getClassResponse) error() error {
+	return r.Error
+}
+
 func MakeCreateClassEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(createClassRequest)
@@ -94,6 +137,10 @@ type createClassRequest struct {
 type createClassResponse struct {
 	Id    uuid.UUID `json:"id"`
 	Error error `json:"error,omitempty"`
+}
+
+func (r createClassResponse) error() error {
+	return r.Error
 }
 
 func MakeUpdateClassEndpoint(s Service) endpoint.Endpoint {
@@ -114,6 +161,10 @@ type updateClassResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
+func (r updateClassResponse) error() error {
+	return r.Error
+}
+
 func MakeDeleteClassEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(deleteClassRequest)
@@ -130,40 +181,9 @@ type deleteClassResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
-//func MakeGetMemberEndpoint(s Service) endpoint.Endpoint {
-//	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-//		req := request.(getMemberRequest)
-//		member, e := s.GetMember(ctx, req.Id)
-//		return getMemberResponse{member, e}, nil
-//	}
-//}
-//
-//type getMemberRequest struct {
-//	Id uuid.UUID `json:"id"`
-//}
-//
-//type getMemberResponse struct {
-//	*models.Member
-//	Error error `json:"error,omitempty"`
-//}
-
-//func MakeGetMemberByUserEndpoint(s Service) endpoint.Endpoint {
-//	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-//		req := request.(getMemberByUserRequest)
-//		member, e := s.GetMemberByUser(ctx, req.User, req.Class)
-//		return getMemberByUserResponse{member, e}, nil
-//	}
-//}
-//
-//type getMemberByUserRequest struct {
-//	User  uuid.UUID `json:"user"`
-//	Class uuid.UUID `json:"class"`
-//}
-//
-//type getMemberByUserResponse struct {
-//	*models.Member `json:"member"`
-//	Error error `json:"error,omitempty"`
-//}
+func (r deleteClassResponse) error() error {
+	return r.Error
+}
 
 func MakeJoinClassEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
@@ -181,6 +201,10 @@ type joinClassResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
+func (r joinClassResponse) error() error {
+	return r.Error
+}
+
 func MakeLeaveClassEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(leaveClassRequest)
@@ -196,6 +220,10 @@ type leaveClassRequest struct {
 
 type leaveClassResponse struct {
 	Error error `json:"error,omitempty"`
+}
+
+func (r leaveClassResponse) error() error {
+	return r.Error
 }
 
 func MakeSetRoleEndpoint(s Service) endpoint.Endpoint {
@@ -216,11 +244,15 @@ type setRoleResponse struct {
 	Error error `json:"error,omitempty"`
 }
 
+func (r setRoleResponse) error() error {
+	return r.Error
+}
+
 func MakeListMembersEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(listMembersRequest)
 		members, e := s.ListMembers(ctx, req.Class)
-		return getClassMembersResponse{members, e}, nil
+		return listMembersResponse{members, e}, nil
 	}
 }
 
@@ -228,7 +260,11 @@ type listMembersRequest struct {
 	Class uuid.UUID `json:"id"`
 }
 
-type getClassMembersResponse struct {
+type listMembersResponse struct {
 	Members []*models.Member `json:"members"`
 	Error   error `json:"error,omitempty"`
+}
+
+func (r listMembersResponse) error() error {
+	return r.Error
 }

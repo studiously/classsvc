@@ -4,16 +4,21 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/go-kit/kit/log"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/ory/hydra/sdk"
-	. "github.com/studiously/classsvc/errors"
 	"github.com/studiously/introspector"
+)
+
+var (
+	ErrBadRequest = errors.New("the request is malformed or invalid")
 )
 
 func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Handler {
@@ -43,14 +48,14 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 
 	r.Methods("GET").Path("/classes/").Handler(httptransport.NewServer(
 		introspector.New(client.Introspection, "classes.list")(e.ListClassesEndpoint),
-		decodeGetClassesRequest,
+		decodeListClassesRequest,
 		encodeResponse,
 		options...
 	))
 
 	r.Methods("PATCH").Path("/classes/{class}").Handler(httptransport.NewServer(
 		introspector.New(client.Introspection, "classes.update")(e.UpdateClassEndpoint),
-		decodeUpdateClassesRequest,
+		decodeUpdateClassRequest,
 		encodeResponse,
 		options...
 	))
@@ -69,7 +74,7 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 		options...
 	))
 
-	r.Methods("GET").Path("/classes/{class}/join").Handler(httptransport.NewServer(
+	r.Methods("POST").Path("/classes/{class}/join").Handler(httptransport.NewServer(
 		introspector.New(client.Introspection, "classes.join")(e.JoinClassEndpoint),
 		decodeJoinClassRequest,
 		encodeResponse,
@@ -82,8 +87,8 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 		encodeResponse,
 		options...
 	)
-	r.Methods("GET").Path("/classes/{class}/leave").Handler(leaveClassServer)
-	r.Methods("GET").Path("/classes/{class}/leave/{user}").Handler(leaveClassServer)
+	r.Methods("DELETE").Path("/classes/{class}/leave").Handler(leaveClassServer)
+	r.Methods("DELETE").Path("/classes/{class}/leave/{user}").Handler(leaveClassServer)
 
 	r.Methods("PATCH").Path("/classes/{class}/members/{user}").Handler(httptransport.NewServer(
 		introspector.New(client.Introspection, "classes.members:update")(e.SetRoleEndpoint),
@@ -92,12 +97,20 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 		options...
 	))
 
-	//r.Methods("DELETE").Path("/classes/{class}/leave").Handler(httptransport.NewServer(
-	//	introspector.New(client.Introspection, "classes.leave")(e.DeleteMemberEndpoint),
-	//
-	//))
-
 	return r
+}
+
+func encodeGetClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
+	r := request.(getClassRequest)
+	classID := url.QueryEscape(r.Id.String())
+	req.Method, req.URL.Path = "GET", "/classes/"+classID
+	return encodeRequest(ctx, req, request)
+}
+
+func decodeGetClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
+	var response getClassResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
 }
 
 func decodeGetClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -109,6 +122,17 @@ func decodeGetClassRequest(_ context.Context, r *http.Request) (interface{}, err
 	return getClassRequest{class}, nil
 }
 
+func encodeCreateClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
+	req.Method, req.URL.Path = "POST", "/classes/"
+	return encodeRequest(ctx, req, request)
+}
+
+func decodeCreateClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
+	var response createClassResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
+}
+
 func decodeCreateClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var req createClassRequest
 	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
@@ -117,16 +141,53 @@ func decodeCreateClassRequest(_ context.Context, r *http.Request) (interface{}, 
 	return req, nil
 }
 
-func decodeGetClassesRequest(_ context.Context, r *http.Request) (interface{}, error) {
+func encodeListClassesRequest(ctx context.Context, req *http.Request, request interface{}) error {
+	req.Method, req.URL.Path = "GET", "/classes/"
+	return encodeRequest(ctx, req, request)
+}
+
+func decodeListClassesResponse(_ context.Context, resp *http.Response) (interface{}, error) {
+	var response listClassesResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
+}
+
+func decodeListClassesRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	return nil, nil
 }
 
-func decodeUpdateClassesRequest(_ context.Context, r *http.Request) (interface{}, error) {
+func encodeUpdateClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
+	r := request.(updateClassRequest)
+	classID := url.QueryEscape(r.Class.String())
+	req.Method, req.URL.Path = "PATCH", "/classes/"+classID
+	return encodeRequest(ctx, req, request)
+}
+
+func decodeUpdateClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
+	var response updateClassResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
+}
+
+func decodeUpdateClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var req updateClassRequest
 	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
 		return nil, e
 	}
 	return req, nil
+}
+
+func encodeDeleteClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
+	r := request.(deleteClassRequest)
+	classID := url.QueryEscape(r.Id.String())
+	req.Method, req.URL.Path = "DELETE", "/classes/"+classID
+	return encodeRequest(ctx, req, request)
+}
+
+func decodeDeleteClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
+	var response deleteClassResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
 }
 
 func decodeDeleteClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -138,14 +199,18 @@ func decodeDeleteClassRequest(_ context.Context, r *http.Request) (interface{}, 
 	return deleteClassRequest{class}, nil
 }
 
-//func decodeGetMemberRequest(_ context.Context, r *http.Request) (interface{}, error) {
-//	vars := mux.Vars(r)
-//	member, err := uuid.Parse(vars["id"])
-//	if err != nil {
-//		return deleteClassRequest{}, ErrBadRequest
-//	}
-//	return getMemberRequest{member}, nil
-//}
+func encodeListMembersRequest(ctx context.Context, req *http.Request, request interface{}) error {
+	r := request.(listMembersRequest)
+	classID := url.QueryEscape(r.Class.String())
+	req.Method, req.URL.Path = "GET", "/classes/"+classID+"/members"
+	return encodeRequest(ctx, req, request)
+}
+
+func decodeListMembersResponse(_ context.Context, resp *http.Response) (interface{}, error) {
+	var response listMembersResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
+}
 
 func decodeListMembersRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	vars := mux.Vars(r)
@@ -154,6 +219,19 @@ func decodeListMembersRequest(_ context.Context, r *http.Request) (interface{}, 
 		return listMembersRequest{}, ErrBadRequest
 	}
 	return listMembersRequest{class}, nil
+}
+
+func encodeJoinClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
+	r := request.(joinClassRequest)
+	classID := url.QueryEscape(r.Class.String())
+	req.Method, req.URL.Path = "POST", "/classes/"+classID+"/join"
+	return encodeRequest(ctx, req, request)
+}
+
+func decodeJoinClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
+	var response joinClassResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
 }
 
 func decodeJoinClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -165,6 +243,25 @@ func decodeJoinClassRequest(_ context.Context, r *http.Request) (interface{}, er
 	return joinClassRequest{
 		Class: class,
 	}, nil
+}
+
+func encodeLeaveClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
+	r := request.(leaveClassRequest)
+	classID := url.QueryEscape(r.Class.String())
+	req.Method = "DELETE"
+	if r.User == uuid.Nil {
+		req.URL.Path = "/classes/" + classID + "/leave"
+	} else {
+		userID := url.QueryEscape(r.User.String())
+		req.URL.Path = "/classes/" + classID + "/leave/" + userID
+	}
+	return encodeRequest(ctx, req, request)
+}
+
+func decodeLeaveClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
+	var response leaveClassResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
 }
 
 func decodeLeaveClassRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -185,6 +282,20 @@ func decodeLeaveClassRequest(_ context.Context, r *http.Request) (interface{}, e
 	}
 	req.User = user
 	return req, nil
+}
+
+func encodeSetRoleRequest(ctx context.Context, req *http.Request, request interface{}) error {
+	r := request.(setRoleRequest)
+	classID := url.QueryEscape(r.Class.String())
+	userID := url.QueryEscape(r.User.String())
+	req.Method, req.URL.Path = "PATCH", "/classes/"+classID+"/members/"+userID
+	return encodeRequest(ctx, req, request)
+}
+
+func decodeSetRoleResponse(_ context.Context, resp *http.Response) (interface{}, error) {
+	var response setRoleResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
 }
 
 func decodeSetRoleRequest(_ context.Context, r *http.Request) (interface{}, error) {

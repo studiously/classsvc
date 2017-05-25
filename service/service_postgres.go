@@ -144,38 +144,6 @@ func (s *postgresService) ListMembers(ctx context.Context, class uuid.UUID) ([]*
 	return models.MembersByClassID(s, class)
 }
 
-//func (s *postgresService) GetMember(ctx context.Context, id uuid.UUID) (*models.Member, error) {
-//	rm, err := models.MemberByID(s, id)
-//	if err != nil {
-//		switch err {
-//		case sql.ErrNoRows:
-//			return nil, ErrNotFound
-//		default:
-//			return nil, err
-//		}
-//	}
-//	m, err := models.MemberByUserIDClassID(s, subj(ctx), rm.ClassID)
-//	if err != nil {
-//		switch err {
-//		case sql.ErrNoRows:
-//			return nil, ErrForbidden
-//		default:
-//			return nil, err
-//		}
-//	}
-//	return m, nil
-//}
-
-//func (s *postgresService) GetMemberByUser(ctx context.Context, userId uuid.UUID, classId uuid.UUID) (*models.Member, error) {
-//	introspection := ctx.Value(introspector.OAuth2IntrospectionContextKey).(oauth2.Introspection)
-//	subj, err := uuid.Parse(introspection.Subject)
-//	if err != nil {
-//		return nil, ErrUnauthenticated
-//	}
-//	if userId !=
-//	return models.MemberByUserIDClassID(s, userId, classId)
-//}
-
 func (s *postgresService) JoinClass(ctx context.Context, class uuid.UUID) error {
 	_, err := models.MemberByUserIDClassID(s, subj(ctx), class)
 	if err == nil {
