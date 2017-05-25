@@ -1,5 +1,5 @@
 hash: e64679225b6200d5c4366cfacbe1a59afb8f082c7733d8c66434ea8d5cfcefb7
-updated: 2017-05-24T10:09:46.860842552-05:00
+updated: 2017-05-25T14:02:47.00152857-05:00
 imports:
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
@@ -158,6 +158,8 @@ imports:
   subpackages:
   - assert
   - require
+- name: github.com/studiously/introspector
+  version: efe68d81eca8ae80111bc1ad04304bfc3dcfa5df
 - name: golang.org/x/crypto
   version: 7e9105388ebff089b3f99f0ef676ea55a6da3a7e
   subpackages:
