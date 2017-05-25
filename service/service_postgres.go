@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/ory/hydra/oauth2"
 	. "github.com/studiously/classsvc/errors"
-	"github.com/studiously/classsvc/middleware/auth"
 	"github.com/studiously/classsvc/models"
+	"github.com/studiously/introspector"
 )
 
 type postgresService struct {
@@ -16,7 +16,7 @@ type postgresService struct {
 }
 
 func (s *postgresService) GetClass(ctx context.Context, classId uuid.UUID) (*models.Class, error) {
-	introspection := ctx.Value(auth.OAuth2IntrospectionContextKey).(oauth2.Introspection)
+	introspection := ctx.Value(introspector.OAuth2IntrospectionContextKey).(oauth2.Introspection)
 	subj, err := uuid.Parse(introspection.Subject)
 	if err != nil {
 		return nil, ErrUnauthenticated
@@ -30,7 +30,7 @@ func (s *postgresService) GetClass(ctx context.Context, classId uuid.UUID) (*mod
 }
 
 func (s *postgresService) CreateClass(ctx context.Context, name string) (uuid.UUID, error) {
-	introspection := ctx.Value(auth.OAuth2IntrospectionContextKey).(oauth2.Introspection)
+	introspection := ctx.Value(introspector.OAuth2IntrospectionContextKey).(oauth2.Introspection)
 	subj, err := uuid.Parse(introspection.Subject)
 	if err != nil {
 		return uuid.Nil, ErrUnauthenticated
@@ -66,7 +66,7 @@ func (s *postgresService) CreateClass(ctx context.Context, name string) (uuid.UU
 }
 
 func (s *postgresService) UpdateClass(ctx context.Context, id uuid.UUID, name string, currentUnit uuid.UUID) error {
-	introspection := ctx.Value(auth.OAuth2IntrospectionContextKey).(oauth2.Introspection)
+	introspection := ctx.Value(introspector.OAuth2IntrospectionContextKey).(oauth2.Introspection)
 	subj, err := uuid.Parse(introspection.Subject)
 	if err != nil {
 		return ErrUnauthenticated
@@ -167,7 +167,7 @@ func (s *postgresService) ListMembers(ctx context.Context, class uuid.UUID) ([]*
 //}
 
 //func (s *postgresService) GetMemberByUser(ctx context.Context, userId uuid.UUID, classId uuid.UUID) (*models.Member, error) {
-//	introspection := ctx.Value(auth.OAuth2IntrospectionContextKey).(oauth2.Introspection)
+//	introspection := ctx.Value(introspector.OAuth2IntrospectionContextKey).(oauth2.Introspection)
 //	subj, err := uuid.Parse(introspection.Subject)
 //	if err != nil {
 //		return nil, ErrUnauthenticated
@@ -283,5 +283,5 @@ func NewPostgres(db *sql.DB) Service {
 }
 
 func subj(ctx context.Context) uuid.UUID {
-	return ctx.Value(auth.SubjectContextKey).(uuid.UUID)
+	return ctx.Value(introspector.SubjectContextKey).(uuid.UUID)
 }
