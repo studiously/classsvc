@@ -102,7 +102,7 @@ func MakeHTTPHandler(s Service, logger log.Logger, client *sdk.Client) http.Hand
 
 func encodeGetClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
 	r := request.(getClassRequest)
-	classID := url.QueryEscape(r.Id.String())
+	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "GET", "/classes/"+classID
 	return encodeRequest(ctx, req, request)
 }
@@ -158,7 +158,7 @@ func decodeListClassesRequest(_ context.Context, r *http.Request) (interface{}, 
 
 func encodeUpdateClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
 	r := request.(updateClassRequest)
-	classID := url.QueryEscape(r.Class.String())
+	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "PATCH", "/classes/"+classID
 	return encodeRequest(ctx, req, request)
 }
@@ -179,7 +179,7 @@ func decodeUpdateClassRequest(_ context.Context, r *http.Request) (interface{}, 
 
 func encodeDeleteClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
 	r := request.(deleteClassRequest)
-	classID := url.QueryEscape(r.Id.String())
+	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "DELETE", "/classes/"+classID
 	return encodeRequest(ctx, req, request)
 }
@@ -201,7 +201,7 @@ func decodeDeleteClassRequest(_ context.Context, r *http.Request) (interface{}, 
 
 func encodeListMembersRequest(ctx context.Context, req *http.Request, request interface{}) error {
 	r := request.(listMembersRequest)
-	classID := url.QueryEscape(r.Class.String())
+	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "GET", "/classes/"+classID+"/members"
 	return encodeRequest(ctx, req, request)
 }
@@ -223,7 +223,7 @@ func decodeListMembersRequest(_ context.Context, r *http.Request) (interface{}, 
 
 func encodeJoinClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
 	r := request.(joinClassRequest)
-	classID := url.QueryEscape(r.Class.String())
+	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "POST", "/classes/"+classID+"/join"
 	return encodeRequest(ctx, req, request)
 }
@@ -241,18 +241,18 @@ func decodeJoinClassRequest(_ context.Context, r *http.Request) (interface{}, er
 		return joinClassRequest{}, ErrBadRequest
 	}
 	return joinClassRequest{
-		Class: class,
+		ClassID: class,
 	}, nil
 }
 
 func encodeLeaveClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
 	r := request.(leaveClassRequest)
-	classID := url.QueryEscape(r.Class.String())
+	classID := url.QueryEscape(r.ClassID.String())
 	req.Method = "DELETE"
-	if r.User == uuid.Nil {
+	if r.UserID == uuid.Nil {
 		req.URL.Path = "/classes/" + classID + "/leave"
 	} else {
-		userID := url.QueryEscape(r.User.String())
+		userID := url.QueryEscape(r.UserID.String())
 		req.URL.Path = "/classes/" + classID + "/leave/" + userID
 	}
 	return encodeRequest(ctx, req, request)
@@ -271,7 +271,7 @@ func decodeLeaveClassRequest(_ context.Context, r *http.Request) (interface{}, e
 	if err != nil {
 		return leaveClassRequest{}, ErrBadRequest
 	}
-	req.Class = class
+	req.ClassID = class
 	userS, ok := vars["user"]
 	user := uuid.Nil
 	if ok {
@@ -280,14 +280,14 @@ func decodeLeaveClassRequest(_ context.Context, r *http.Request) (interface{}, e
 			return nil, ErrBadRequest
 		}
 	}
-	req.User = user
+	req.UserID = user
 	return req, nil
 }
 
 func encodeSetRoleRequest(ctx context.Context, req *http.Request, request interface{}) error {
 	r := request.(setRoleRequest)
-	classID := url.QueryEscape(r.Class.String())
-	userID := url.QueryEscape(r.User.String())
+	classID := url.QueryEscape(r.ClassID.String())
+	userID := url.QueryEscape(r.UserID.String())
 	req.Method, req.URL.Path = "PATCH", "/classes/"+classID+"/members/"+userID
 	return encodeRequest(ctx, req, request)
 }
@@ -306,12 +306,12 @@ func decodeSetRoleRequest(_ context.Context, r *http.Request) (interface{}, erro
 	if err != nil {
 		return setRoleRequest{}, ErrBadRequest
 	}
-	req.Class = class
+	req.ClassID = class
 	user, err := uuid.Parse(vars["user"])
 	if err != nil {
 		return nil, ErrBadRequest
 	}
-	req.User = user
+	req.UserID = user
 	if e := json.NewDecoder(r.Body).Decode(&req.Role); e != nil {
 		return nil, e
 	}
