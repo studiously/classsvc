@@ -1,5 +1,5 @@
 hash: e64679225b6200d5c4366cfacbe1a59afb8f082c7733d8c66434ea8d5cfcefb7
-updated: 2017-05-25T14:02:47.00152857-05:00
+updated: 2017-05-28T15:53:11.650124663-05:00
 imports:
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
@@ -113,7 +113,7 @@ imports:
   - warden
   - warden/group
 - name: github.com/ory/ladon
-  version: c0fffe8de3b7d8e42633fbbe034e5d1f439c72bf
+  version: 24fe723368e1f47534219523c0580948cc7b873e
   subpackages:
   - manager/memory
   - manager/sql
@@ -160,6 +160,8 @@ imports:
   - require
 - name: github.com/studiously/introspector
   version: efe68d81eca8ae80111bc1ad04304bfc3dcfa5df
+- name: github.com/studiously/svcerror
+  version: eca4f491e5c305d6a497ce3023bfa1c7a35d2d27
 - name: golang.org/x/crypto
   version: 7e9105388ebff089b3f99f0ef676ea55a6da3a7e
   subpackages:

@@ -35,9 +35,9 @@ import (
 	"github.com/rubenv/sql-migrate"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/studiously/classsvc/classsvc"
 	"github.com/studiously/classsvc/ddl"
-	. "github.com/studiously/classsvc/errors"
-	"github.com/studiously/classsvc/service"
+	"errors"
 )
 
 var addr string
@@ -73,7 +73,7 @@ A Hydra server is required to perform token introspection and thus authorization
 			logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 			logger = log.With(logger, "caller", log.DefaultCaller)
 		}
-		var s service.Service
+		var s classsvc.Service
 		{
 			// Set up database
 			var driver = viper.GetString("database.driver")
@@ -93,7 +93,7 @@ A Hydra server is required to perform token introspection and thus authorization
 				os.Exit(-1)
 			}
 
-			s = service.NewPostgres(db)
+			s = classsvc.NewPostgres(db)
 		}
 
 		sdk.Connect()
@@ -109,7 +109,7 @@ A Hydra server is required to perform token introspection and thus authorization
 			os.Exit(-1)
 		}
 
-		var h = service.MakeHTTPHandler(s, logger, client)
+		var h = classsvc.MakeHTTPHandler(s, logger, client)
 		errs := make(chan error)
 		go func() {
 			c := make(chan os.Signal, 100)
@@ -152,5 +152,5 @@ func pingDatabase(db *sql.DB) (err error) {
 		}
 		time.Sleep(time.Second)
 	}
-	return ErrDatabaseUnresponsive
+	return errors.New("database unresponsive")
 }

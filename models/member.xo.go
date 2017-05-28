@@ -15,6 +15,7 @@ type Member struct {
 	UserID  uuid.UUID `json:"user_id"`  // user_id
 	ClassID uuid.UUID `json:"class_id"` // class_id
 	Role    UserRole  `json:"role"`     // role
+	Owner   bool      `json:"owner"`    // owner
 
 	// xo fields
 	_exists, _deleted bool
@@ -41,14 +42,14 @@ func (m *Member) Insert(db XODB) error {
 
 	// sql insert query, primary key must be provided
 	const sqlstr = `INSERT INTO public.members (` +
-		`id, user_id, class_id, role` +
+		`id, user_id, class_id, role, owner` +
 		`) VALUES (` +
-		`$1, $2, $3, $4` +
+		`$1, $2, $3, $4, $5` +
 		`)`
 
 	// run query
-	XOLog(sqlstr, m.ID, m.UserID, m.ClassID, m.Role)
-	err = db.QueryRow(sqlstr, m.ID, m.UserID, m.ClassID, m.Role).Scan(&m.ID)
+	XOLog(sqlstr, m.ID, m.UserID, m.ClassID, m.Role, m.Owner)
+	err = db.QueryRow(sqlstr, m.ID, m.UserID, m.ClassID, m.Role, m.Owner).Scan(&m.ID)
 	if err != nil {
 		return err
 	}
@@ -75,14 +76,14 @@ func (m *Member) Update(db XODB) error {
 
 	// sql query
 	const sqlstr = `UPDATE public.members SET (` +
-		`user_id, class_id, role` +
+		`user_id, class_id, role, owner` +
 		`) = ( ` +
-		`$1, $2, $3` +
-		`) WHERE id = $4`
+		`$1, $2, $3, $4` +
+		`) WHERE id = $5`
 
 	// run query
-	XOLog(sqlstr, m.UserID, m.ClassID, m.Role, m.ID)
-	_, err = db.Exec(sqlstr, m.UserID, m.ClassID, m.Role, m.ID)
+	XOLog(sqlstr, m.UserID, m.ClassID, m.Role, m.Owner, m.ID)
+	_, err = db.Exec(sqlstr, m.UserID, m.ClassID, m.Role, m.Owner, m.ID)
 	return err
 }
 
@@ -108,18 +109,18 @@ func (m *Member) Upsert(db XODB) error {
 
 	// sql query
 	const sqlstr = `INSERT INTO public.members (` +
-		`id, user_id, class_id, role` +
+		`id, user_id, class_id, role, owner` +
 		`) VALUES (` +
-		`$1, $2, $3, $4` +
+		`$1, $2, $3, $4, $5` +
 		`) ON CONFLICT (id) DO UPDATE SET (` +
-		`id, user_id, class_id, role` +
+		`id, user_id, class_id, role, owner` +
 		`) = (` +
-		`EXCLUDED.id, EXCLUDED.user_id, EXCLUDED.class_id, EXCLUDED.role` +
+		`EXCLUDED.id, EXCLUDED.user_id, EXCLUDED.class_id, EXCLUDED.role, EXCLUDED.owner` +
 		`)`
 
 	// run query
-	XOLog(sqlstr, m.ID, m.UserID, m.ClassID, m.Role)
-	_, err = db.Exec(sqlstr, m.ID, m.UserID, m.ClassID, m.Role)
+	XOLog(sqlstr, m.ID, m.UserID, m.ClassID, m.Role, m.Owner)
+	_, err = db.Exec(sqlstr, m.ID, m.UserID, m.ClassID, m.Role, m.Owner)
 	if err != nil {
 		return err
 	}
@@ -160,6 +161,13 @@ func (m *Member) Delete(db XODB) error {
 	return nil
 }
 
+// Class returns the Class associated with the Member's ClassID (class_id).
+//
+// Generated from foreign key 'members_class_id_fkey'.
+func (m *Member) Class(db XODB) (*Class, error) {
+	return ClassByID(db, m.ClassID)
+}
+
 // MembersByClassID retrieves a row from 'public.members' as a Member.
 //
 // Generated from index 'members_class_id_idx'.
@@ -168,7 +176,7 @@ func MembersByClassID(db XODB, classID uuid.UUID) ([]*Member, error) {
 
 	// sql query
 	const sqlstr = `SELECT ` +
-		`id, user_id, class_id, role ` +
+		`id, user_id, class_id, role, owner ` +
 		`FROM public.members ` +
 		`WHERE class_id = $1`
 
@@ -188,7 +196,7 @@ func MembersByClassID(db XODB, classID uuid.UUID) ([]*Member, error) {
 		}
 
 		// scan
-		err = q.Scan(&m.ID, &m.UserID, &m.ClassID, &m.Role)
+		err = q.Scan(&m.ID, &m.UserID, &m.ClassID, &m.Role, &m.Owner)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +215,7 @@ func MemberByID(db XODB, id uuid.UUID) (*Member, error) {
 
 	// sql query
 	const sqlstr = `SELECT ` +
-		`id, user_id, class_id, role ` +
+		`id, user_id, class_id, role, owner ` +
 		`FROM public.members ` +
 		`WHERE id = $1`
 
@@ -217,7 +225,7 @@ func MemberByID(db XODB, id uuid.UUID) (*Member, error) {
 		_exists: true,
 	}
 
-	err = db.QueryRow(sqlstr, id).Scan(&m.ID, &m.UserID, &m.ClassID, &m.Role)
+	err = db.QueryRow(sqlstr, id).Scan(&m.ID, &m.UserID, &m.ClassID, &m.Role, &m.Owner)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +241,7 @@ func MemberByUserIDClassID(db XODB, userID uuid.UUID, classID uuid.UUID) (*Membe
 
 	// sql query
 	const sqlstr = `SELECT ` +
-		`id, user_id, class_id, role ` +
+		`id, user_id, class_id, role, owner ` +
 		`FROM public.members ` +
 		`WHERE user_id = $1 AND class_id = $2`
 
@@ -243,7 +251,7 @@ func MemberByUserIDClassID(db XODB, userID uuid.UUID, classID uuid.UUID) (*Membe
 		_exists: true,
 	}
 
-	err = db.QueryRow(sqlstr, userID, classID).Scan(&m.ID, &m.UserID, &m.ClassID, &m.Role)
+	err = db.QueryRow(sqlstr, userID, classID).Scan(&m.ID, &m.UserID, &m.ClassID, &m.Role, &m.Owner)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +267,7 @@ func MembersByUserID(db XODB, userID uuid.UUID) ([]*Member, error) {
 
 	// sql query
 	const sqlstr = `SELECT ` +
-		`id, user_id, class_id, role ` +
+		`id, user_id, class_id, role, owner ` +
 		`FROM public.members ` +
 		`WHERE user_id = $1`
 
@@ -279,7 +287,7 @@ func MembersByUserID(db XODB, userID uuid.UUID) ([]*Member, error) {
 		}
 
 		// scan
-		err = q.Scan(&m.ID, &m.UserID, &m.ClassID, &m.Role)
+		err = q.Scan(&m.ID, &m.UserID, &m.ClassID, &m.Role, &m.Owner)
 		if err != nil {
 			return nil, err
 		}

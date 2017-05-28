@@ -15,17 +15,8 @@ const (
 	// UserRoleStudent is the 'student' UserRole.
 	UserRoleStudent = UserRole(1)
 
-	// UserRoleModerator is the 'moderator' UserRole.
-	UserRoleModerator = UserRole(2)
-
 	// UserRoleTeacher is the 'teacher' UserRole.
-	UserRoleTeacher = UserRole(3)
-
-	// UserRoleAdministrator is the 'administrator' UserRole.
-	UserRoleAdministrator = UserRole(4)
-
-	// UserRoleOwner is the 'owner' UserRole.
-	UserRoleOwner = UserRole(5)
+	UserRoleTeacher = UserRole(2)
 )
 
 // String returns the string value of the UserRole.
@@ -36,17 +27,8 @@ func (ur UserRole) String() string {
 	case UserRoleStudent:
 		enumVal = "student"
 
-	case UserRoleModerator:
-		enumVal = "moderator"
-
 	case UserRoleTeacher:
 		enumVal = "teacher"
-
-	case UserRoleAdministrator:
-		enumVal = "administrator"
-
-	case UserRoleOwner:
-		enumVal = "owner"
 	}
 
 	return enumVal
@@ -63,17 +45,8 @@ func (ur *UserRole) UnmarshalText(text []byte) error {
 	case "student":
 		*ur = UserRoleStudent
 
-	case "moderator":
-		*ur = UserRoleModerator
-
 	case "teacher":
 		*ur = UserRoleTeacher
-
-	case "administrator":
-		*ur = UserRoleAdministrator
-
-	case "owner":
-		*ur = UserRoleOwner
 
 	default:
 		return errors.New("invalid UserRole")
