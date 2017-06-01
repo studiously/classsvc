@@ -22,6 +22,7 @@ package cmd
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -37,7 +38,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/studiously/classsvc/classsvc"
 	"github.com/studiously/classsvc/ddl"
-	"errors"
 )
 
 var addr string
@@ -96,7 +96,6 @@ A Hydra server is required to perform token introspection and thus authorization
 			s = classsvc.NewPostgres(db)
 		}
 
-		sdk.Connect()
 		client, err := sdk.Connect(
 			sdk.ClientID(viper.GetString("hydra.client.id")),
 			sdk.ClientSecret(viper.GetString("hydra.client.secret")),

@@ -9,6 +9,7 @@ import (
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/google/uuid"
 	"github.com/studiously/classsvc/models"
+	"github.com/studiously/introspector"
 )
 
 // Endpoints collects all of the endpoints that compose a class service. It's
@@ -64,7 +65,9 @@ func MakeClientEndpoints(instance string) (Endpoints, error) {
 	}
 	tgt.Path = ""
 
-	options := []httptransport.ClientOption{}
+	options := []httptransport.ClientOption{
+		httptransport.ClientBefore(introspector.FromHTTPContext()),
+	}
 
 	return Endpoints{
 		ListClassesEndpoint: httptransport.NewClient("GET", tgt, EncodeListClassesRequest, DecodeListClassesResponse, options...).Endpoint(),
