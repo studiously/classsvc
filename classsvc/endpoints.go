@@ -101,14 +101,14 @@ func (e Endpoints) GetClass(ctx context.Context, classID uuid.UUID) (*models.Cla
 	return resp.Class, resp.Error
 }
 
-func (e Endpoints) CreateClass(ctx context.Context, name string) error {
+func (e Endpoints) CreateClass(ctx context.Context, name string) (uuid.UUID, error) {
 	request := createClassRequest{Name: name}
 	response, err := e.CreateClassEndpoint(ctx, request)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	resp := response.(createClassResponse)
-	return resp.Error
+	return resp.Id, resp.Error
 }
 
 func (e Endpoints) UpdateClass(ctx context.Context, classID uuid.UUID, name string, currentUnit uuid.UUID) error {
