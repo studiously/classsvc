@@ -9,6 +9,7 @@ import (
 
 type Middleware func(Service) Service
 
+// Service represents a Studiously class service.
 type Service interface {
 	// ListClasses gets all classes the current user is enrolled in.
 	ListClasses(ctx context.Context) ([]uuid.UUID, error)
@@ -23,7 +24,7 @@ type Service interface {
 	// JoinClass enrolls the current user in a class.
 	JoinClass(ctx context.Context, classID uuid.UUID) (error)
 	// LeaveClass causes a user to be un-enrolled from a class.
-	// If user is not `uuid.Nil`, then LeaveClass removes the other user, requiring the current user to have elevated permissions.
+	// If user is not nil, then LeaveClass removes the other user, requiring the current user to have elevated permissions.
 	LeaveClass(ctx context.Context, userID *uuid.UUID, classID uuid.UUID) error
 	// SetRole sets the role of a user in a class.
 	// The current user must have a higher role than the target user.
