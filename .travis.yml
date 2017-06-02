@@ -12,12 +12,12 @@ before_install:
 script:
   - $HOME/gopath/bin/goveralls -service=travis-ci
 
-deploy:
-  - provider: script
-    script: ./deploy.sh
-    skip_cleanup: true
-    on:
-      branch: master
+after_success:
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+    docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+    docker build -t $REPO .
+    docker push $REPO;
+    fi
 
 #after_success:
 #  - export REPO=studiously/classsvc
