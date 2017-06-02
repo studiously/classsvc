@@ -12,18 +12,15 @@ before_install:
   - go get github.com/mattn/goveralls
   - go get github.com/Masterminds/glide
 
-install:
-  - glide install -v
-
 script:
   - $HOME/gopath/bin/goveralls -service=travis-ci
 
 after_success:
   - export REPO=studiously/classsvc
   - export BRANCH=`if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi`
-  - echo "$BRANCH"
+  - echo $BRANCH
   - export TAG=`if [ "$BRANCH" == "master" ]; then echo "latest"; else echo $BRANCH ; fi`
-  - echo "$TAG"
+  - echo $TAG
   - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
   - docker build -f Dockerfile -t $REPO:$COMMIT .
   - docker tag $REPO:$COMMIT $REPO:$TAG

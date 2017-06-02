@@ -1,13 +1,8 @@
 FROM golang:alpine
 
-RUN apk add --no-cache git
-RUN go get github.com/Masterminds/glide
+#RUN apk add --no-cache git
 WORKDIR /go/src/github.com/studiously/classsvc
 
-ADD ./glide.yaml ./glide.yaml
-ADD ./glide.lock ./glide.lock
-RUN glide install --skip-test -v
-ADD . .
 RUN GOOS=linux GOARCH=amd64 go build -o classsvc_linux-amd64
 
 FROM scratch
