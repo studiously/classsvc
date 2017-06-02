@@ -1,8 +1,9 @@
 FROM golang:alpine
 
-#RUN apk add --no-cache git
+RUN apk add --no-cache git
 WORKDIR /go/src/github.com/studiously/classsvc
 
+ADD . .
 RUN GOOS=linux GOARCH=amd64 go build -o classsvc_linux-amd64
 
 FROM scratch
