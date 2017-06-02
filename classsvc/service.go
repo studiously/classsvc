@@ -30,8 +30,6 @@ type Service interface {
 	SetRole(ctx context.Context, classID uuid.UUID, userID uuid.UUID, role models.UserRole) error
 	// ListMembers lists all members of a class and their role.
 	ListMembers(ctx context.Context, classID uuid.UUID) ([]*models.Member, error)
-	////GetMember gets a member of a class.
+	// GetMember gets a member of a class.
 	GetMember(ctx context.Context, classID, userID uuid.UUID) (member *models.Member, err error)
-	//GetRole(ctx context.Context, userID, classID uuid.UUID) (*models.UserRole, error)
-	//IsOwner(ctx context.Context, userID, classID uuid.UUID) (bool, error)
 }
