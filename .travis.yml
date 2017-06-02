@@ -16,7 +16,7 @@ after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
     docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
     docker build -t $REPO .
-    docker push $REPO;
+    docker push $REPO:latest;
     fi
 
 #after_success:
