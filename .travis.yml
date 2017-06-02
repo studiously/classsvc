@@ -1,5 +1,4 @@
 language: go
-sudo: false
 
 services:
   - docker
@@ -18,7 +17,6 @@ install:
   - glide install -v
 
 script:
-  - $HOME/gopath/bin/
   - $HOME/gopath/bin/goveralls -service=travis-ci
 
 after_success:
