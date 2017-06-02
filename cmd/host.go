@@ -130,20 +130,27 @@ A NATS cluster is required for messaging across services. Without it, stale data
 			nc, err = nats.Connect(viper.GetString("nats.cluster_url"))
 			if err != nil {
 				logger.Log("msg", "could not connect to NATS cluster", "error", err, "cluster_url", viper.GetString("nats.cluster_url"))
-				os.Exit(-1)
+				// not fatal
+				// os.Exit(-1)
 			}
 		}
 
 		var service classsvc.Service
 		{
-			mm, err := classsvc.MessagingMiddleware(nc)
-			if err != nil {
-				logger.Log("msg", "could not start encoded connection to NATS", "error", err)
-				os.Exit(-1)
+			service = classsvc.New(db)
+
+			if nc != nil {
+				mm, err := classsvc.MessagingMiddleware(nc)
+				if err != nil {
+					logger.Log("msg", "could not start encoded connection to NATS", "error", err)
+					// again, not fatal
+					// os.Exit(-1)
+				} else {
+					service = mm(service)
+				}
+
 			}
 
-			service = classsvc.New(db)
-			service = mm(service)
 			service = classsvc.LoggingMiddleware(logger)(service)
 			service = classsvc.InstrumentingMiddleware(requestCount, duration)(service)
 		}
