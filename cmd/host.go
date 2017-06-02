@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
@@ -63,7 +62,7 @@ A NATS cluster is required for messaging across services. Without it, stale data
 	Run: func(cmd *cobra.Command, args []string) {
 		var logger log.Logger
 		{
-			logger = log.NewLogfmtLogger(logrus.StandardLogger().Out)
+			logger = log.NewLogfmtLogger(os.Stdout)
 			logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 			logger = log.With(logger, "caller", log.DefaultCaller)
 		}
