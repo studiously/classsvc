@@ -72,7 +72,7 @@ A NATS cluster is required for messaging across services. Without it, stale data
 		{
 			// Transport level metrics.
 			duration = prometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
-				Namespace: "unitsvc",
+				Namespace: "classsvc",
 				Name:      "request_duration_ns",
 				Help:      "Request duration in nanoseconds.",
 			}, []string{"method", "success"})
@@ -80,7 +80,7 @@ A NATS cluster is required for messaging across services. Without it, stale data
 		var requestCount metrics.Counter
 		{
 			requestCount = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
-				Namespace: "unitsvc",
+				Namespace: "classsvc",
 				Name:      "request_count",
 				Help:      "Total count of requests to all endpoints.",
 			}, []string{})
