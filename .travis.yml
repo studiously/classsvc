@@ -11,22 +11,3 @@ before_install:
 
 script:
   - $HOME/gopath/bin/goveralls -service=travis-ci
-
-after_success:
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-    docker build -t $REPO .
-    docker push $REPO:latest;
-    fi
-
-#after_success:
-#  - export REPO=studiously/classsvc
-#  - export BRANCH=`if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi`
-#  - echo $BRANCH
-#  - export TAG=`if [ "$BRANCH" == "master" ]; then echo "latest"; else echo $BRANCH ; fi`
-#  - echo $TAG
-#  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-#  - docker build -f Dockerfile -t $REPO:$COMMIT .
-#  - docker tag $REPO:$COMMIT $REPO:$TAG
-#  - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
-#  - docker push $REPO
