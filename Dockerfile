@@ -11,5 +11,5 @@ RUN glide install --skip-test -v
 ADD . .
 RUN go install .
 
-ENTRYPOINT /go/bin/classsvc host --addr=:9392
-EXPOSE 9392
+ENTRYPOINT /go/bin/classsvc host
+EXPOSE 8080:8080, 8081:8081
