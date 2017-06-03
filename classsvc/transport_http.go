@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -13,13 +14,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/ory/hydra/oauth2"
-	"github.com/studiously/classsvc/codes"
 	"github.com/studiously/introspector"
-	"github.com/studiously/svcerror"
 )
 
 var (
-	ErrBadRequest = svcerror.New(codes.BadRequest, "the request is malformed or invalid")
+	ErrBadRequest = errors.New("the request is malformed or invalid")
 )
 
 func MakeHTTPHandler(s Service, introspection oauth2.Introspector, logger log.Logger) http.Handler {
@@ -27,7 +26,7 @@ func MakeHTTPHandler(s Service, introspection oauth2.Introspector, logger log.Lo
 	e := MakeServerEndpoints(s)
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorLogger(logger),
-		httptransport.ServerErrorEncoder(EncodeError),
+		httptransport.ServerErrorEncoder(encodeError),
 		httptransport.ServerBefore(introspector.ToHTTPContext()),
 	}
 
@@ -36,56 +35,56 @@ func MakeHTTPHandler(s Service, introspection oauth2.Introspector, logger log.Lo
 	r.Methods("GET").Path("/classes/{classID}").Handler(httptransport.NewServer(
 		introspector.New(introspection, "classes.get")(e.GetClassEndpoint),
 		DecodeGetClassRequest,
-		EncodeResponse,
+		encodeResponse,
 		append(options, httptransport.ServerBefore(introspector.ToHTTPContext()))...
 	))
 
 	r.Methods("POST").Path("/classes/").Handler(httptransport.NewServer(
 		introspector.New(introspection, "classes.create")(e.CreateClassEndpoint),
 		DecodeCreateClassRequest,
-		EncodeResponse,
+		encodeResponse,
 		options...
 	))
 
 	r.Methods("GET").Path("/classes/").Handler(httptransport.NewServer(
 		introspector.New(introspection, "classes.list")(e.ListClassesEndpoint),
 		DecodeListClassesRequest,
-		EncodeResponse,
+		encodeResponse,
 		options...
 	))
 
 	r.Methods("PATCH").Path("/classes/{classID}").Handler(httptransport.NewServer(
 		introspector.New(introspection, "classes.update")(e.UpdateClassEndpoint),
 		DecodeUpdateClassRequest,
-		EncodeResponse,
+		encodeResponse,
 		options...
 	))
 
 	r.Methods("DELETE").Path("/classes/{classID}").Handler(httptransport.NewServer(
 		introspector.New(introspection, "classes.delete")(e.DeleteClassEndpoint),
 		DecodeDeleteClassRequest,
-		EncodeResponse,
+		encodeResponse,
 		options...
 	))
 
 	r.Methods("GET").Path("/classes/{classID}/members").Handler(httptransport.NewServer(
 		introspector.New(introspection, "classes.members.list")(e.ListMembersEndpoint),
 		DecodeListMembersRequest,
-		EncodeResponse,
+		encodeResponse,
 		options...
 	))
 
 	r.Methods("POST").Path("/classes/{classID}/join").Handler(httptransport.NewServer(
 		introspector.New(introspection, "classes.join")(e.JoinClassEndpoint),
 		DecodeJoinClassRequest,
-		EncodeResponse,
+		encodeResponse,
 		options...
 	))
 
 	leaveClassServer := httptransport.NewServer(
 		introspector.New(introspection, "classes.leave")(e.LeaveClassEndpoint),
 		DecodeLeaveClassRequest,
-		EncodeResponse,
+		encodeResponse,
 		options...
 	)
 	r.Methods("DELETE").Path("/classes/{classID}/leave").Handler(leaveClassServer)
@@ -94,14 +93,14 @@ func MakeHTTPHandler(s Service, introspection oauth2.Introspector, logger log.Lo
 	r.Methods("PATCH").Path("/classes/{classID}/members/{userID}").Handler(httptransport.NewServer(
 		introspector.New(introspection, "classes.members.update")(e.SetRoleEndpoint),
 		DecodeSetRoleRequest,
-		EncodeResponse,
+		encodeResponse,
 		options...
 	))
 
 	r.Methods("GET").Path("/classes/{classID}/members/{userID}").Handler(httptransport.NewServer(
 		introspector.New(introspection, "classes.members.get")(e.GetMemberEndpoint),
 		DecodeGetMemberRequest,
-		EncodeResponse,
+		encodeResponse,
 		options...
 	))
 
@@ -112,7 +111,7 @@ func EncodeGetClassRequest(ctx context.Context, req *http.Request, request inter
 	r := request.(getClassRequest)
 	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "GET", "/classes/"+classID
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeGetClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -132,7 +131,7 @@ func DecodeGetClassRequest(_ context.Context, r *http.Request) (interface{}, err
 
 func EncodeCreateClassRequest(ctx context.Context, req *http.Request, request interface{}) error {
 	req.Method, req.URL.Path = "POST", "/classes/"
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeCreateClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -151,7 +150,7 @@ func DecodeCreateClassRequest(_ context.Context, r *http.Request) (interface{}, 
 
 func EncodeListClassesRequest(ctx context.Context, req *http.Request, request interface{}) error {
 	req.Method, req.URL.Path = "GET", "/classes/"
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeListClassesResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -168,7 +167,7 @@ func EncodeUpdateClassRequest(ctx context.Context, req *http.Request, request in
 	r := request.(updateClassRequest)
 	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "PATCH", "/classes/"+classID
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeUpdateClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -189,7 +188,7 @@ func EncodeDeleteClassRequest(ctx context.Context, req *http.Request, request in
 	r := request.(deleteClassRequest)
 	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "DELETE", "/classes/"+classID
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeDeleteClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -211,7 +210,7 @@ func EncodeListMembersRequest(ctx context.Context, req *http.Request, request in
 	r := request.(listMembersRequest)
 	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "GET", "/classes/"+classID+"/members"
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeListMembersResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -233,7 +232,7 @@ func EncodeJoinClassRequest(ctx context.Context, req *http.Request, request inte
 	r := request.(joinClassRequest)
 	classID := url.QueryEscape(r.ClassID.String())
 	req.Method, req.URL.Path = "POST", "/classes/"+classID+"/join"
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeJoinClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -263,7 +262,7 @@ func EncodeLeaveClassRequest(ctx context.Context, req *http.Request, request int
 		userID := url.QueryEscape(r.UserID.String())
 		req.URL.Path = "/classes/" + classID + "/leave/" + userID
 	}
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeLeaveClassResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -297,7 +296,7 @@ func EncodeSetRoleRequest(ctx context.Context, req *http.Request, request interf
 	classID := url.QueryEscape(r.ClassID.String())
 	userID := url.QueryEscape(r.UserID.String())
 	req.Method, req.URL.Path = "PATCH", "/classes/"+classID+"/members/"+userID
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeSetRoleResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -331,7 +330,7 @@ func EncodeGetMemberRequest(ctx context.Context, req *http.Request, request inte
 	classID := url.QueryEscape(r.ClassID.String())
 	userID := url.QueryEscape(r.UserID.String())
 	req.Method, req.URL.Path = "GET", "/classes/"+classID+"/members/"+userID
-	return EncodeRequest(ctx, req, request)
+	return encodeRequest(ctx, req, request)
 }
 
 func DecodeGetMemberResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -358,7 +357,7 @@ func DecodeGetMemberRequest(_ context.Context, r *http.Request) (interface{}, er
 //	classID := url.QueryEscape(r.ClassID.String())
 //	userID := url.QueryEscape(r.UserID.String())
 //	req.Method, req.URL.Path = "GET", "/classes/"+classID+"/members/"+userID+"/role"
-//	return EncodeRequest(ctx, req, request)
+//	return encodeRequest(ctx, req, request)
 //}
 //
 //func DecodeGetRoleResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -385,7 +384,7 @@ func DecodeGetMemberRequest(_ context.Context, r *http.Request) (interface{}, er
 //	classID := url.QueryEscape(r.ClassID.String())
 //	userID := url.QueryEscape(r.UserID.String())
 //	req.Method, req.URL.Path = "GET", "/classes/"+classID+"/members/"+userID+"/owner"
-//	return EncodeRequest(ctx, req, request)
+//	return encodeRequest(ctx, req, request)
 //}
 //
 //func DecodeIsOwnerResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -412,7 +411,7 @@ func DecodeGetMemberRequest(_ context.Context, r *http.Request) (interface{}, er
 //	classID := url.QueryEscape(r.ClassID.String())
 //	userID := url.QueryEscape(r.UserID.String())
 //	req.Method, req.URL.Path = "PATCH", "/classes/"+classID+"/members?userID="+userID
-//	return EncodeRequest(ctx, req, request)
+//	return encodeRequest(ctx, req, request)
 //}
 //
 //func DecodeGetMemberResponse(_ context.Context, resp *http.Response) (interface{}, error) {
@@ -445,25 +444,25 @@ type errorer interface {
 	error() error
 }
 
-// EncodeResponse is the common method to Encode all response types to the
+// encodeResponse is the common method to Encode all response types to the
 // client. I chose to do it this way because, since we're using JSON, there's no
 // reason to provide anything more specific. It's certainly possible to
 // specialize on a per-response (per-method) basis.
-func EncodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	if e, ok := response.(errorer); ok && e.error() != nil {
 		// Not a Go kit transport error, but a business-logic error.
 		// Provide those as HTTP errors.
-		EncodeError(ctx, e.error(), w)
+		encodeError(ctx, e.error(), w)
 		return nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(response)
 }
 
-// EncodeRequest likewise JSON-Encodes the request to the HTTP request body.
+// encodeRequest likewise JSON-Encodes the request to the HTTP request body.
 // Don't use it directly as a transport/http.Client EncodeRequestFunc:
 // profilesvc endpoints require mutating the HTTP method and request path.
-func EncodeRequest(_ context.Context, req *http.Request, request interface{}) error {
+func encodeRequest(_ context.Context, req *http.Request, request interface{}) error {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(request)
 	if err != nil {
@@ -473,33 +472,31 @@ func EncodeRequest(_ context.Context, req *http.Request, request interface{}) er
 	return nil
 }
 
-func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
+func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	if err == nil {
-		panic("EncodeError with nil error")
-	}
-	if err, ok := err.(svcerror.Error); !ok {
-		err = svcerror.Wrap(codes.Nil, err)
+		panic("encodeError with nil error")
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(httpStatusFrom(err.(svcerror.Error).Status()))
+	w.WriteHeader(codeFrom(err))
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error_code": err.(svcerror.Error).Status(),
-		"error":      err.Error(),
+		"error": err.Error(),
 	})
 }
 
-func httpStatusFrom(code int) int {
-	switch code {
-	case codes.MustSetOwner:
-		return http.StatusBadRequest
-	case codes.UserEnrolled:
-		return http.StatusBadRequest
-	case codes.Forbidden:
-		return http.StatusForbidden
-	case codes.NotFound:
+func codeFrom(err error) int {
+	switch err {
+	case ErrNotFound:
 		return http.StatusNotFound
-	case codes.Unauthenticated:
+	case ErrUnauthorized:
 		return http.StatusUnauthorized
+	case ErrForbidden:
+		return http.StatusForbidden
+	case ErrUserEnrolled:
+		return http.StatusBadRequest
+	case ErrMustSetOwner:
+		return http.StatusBadRequest
+	case ErrInternal:
+		return http.StatusInternalServerError
 	default:
 		return http.StatusInternalServerError
 	}

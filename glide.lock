@@ -1,5 +1,5 @@
-hash: fc47f89fdfdad00de0aaf3e105d6ae25e13c041af8eeee88af729ea9f3f68e0c
-updated: 2017-06-03T10:47:37.820489087-05:00
+hash: 3365e1cf54159601c72612e26c59800386e862e559e50253e6aed7d0ea6370d8
+updated: 2017-06-03T12:29:53.100485164-05:00
 imports:
 - name: github.com/asaskevich/govalidator
   version: 7b3beb6df3c42abd3509abfc3bcacc0fbfb7c877
@@ -198,8 +198,6 @@ imports:
   - require
 - name: github.com/studiously/introspector
   version: efe68d81eca8ae80111bc1ad04304bfc3dcfa5df
-- name: github.com/studiously/svcerror
-  version: eca4f491e5c305d6a497ce3023bfa1c7a35d2d27
 - name: golang.org/x/crypto
   version: 7e9105388ebff089b3f99f0ef676ea55a6da3a7e
   subpackages:

@@ -3,8 +3,18 @@ package classsvc
 import (
 	"context"
 
+	"errors"
 	"github.com/google/uuid"
 	"github.com/studiously/classsvc/models"
+)
+
+var (
+	ErrUnauthorized = errors.New("token invalid or not found")
+	ErrNotFound     = errors.New("resource not found or user is not allowed to access it")
+	ErrForbidden    = errors.New("user is not allowed to perform action")
+	ErrMustSetOwner = errors.New("cannot demote self from owner unless new owner is set")
+	ErrUserEnrolled = errors.New("user is already enrolled in class")
+	ErrInternal     = errors.New("internal server error")
 )
 
 type Middleware func(Service) Service

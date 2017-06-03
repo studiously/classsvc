@@ -7,18 +7,8 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/ory/hydra/oauth2"
-	"github.com/studiously/classsvc/codes"
 	"github.com/studiously/classsvc/models"
 	"github.com/studiously/introspector"
-	"github.com/studiously/svcerror"
-)
-
-var (
-	ErrUnauthenticated = svcerror.New(codes.Unauthenticated, "token invalid or not found")
-	ErrNotFound        = svcerror.New(codes.NotFound, "resource not found or user is not allowed to access it")
-	ErrForbidden       = svcerror.New(codes.Forbidden, "user is not allowed to perform action")
-	ErrMustSetOwner    = svcerror.New(codes.MustSetOwner, "cannot demote self from owner unless new owner is set")
-	ErrUserEnrolled    = svcerror.New(codes.UserEnrolled, "user is already enrolled in class")
 )
 
 type postgresService struct {
@@ -33,11 +23,10 @@ func (s *postgresService) GetClass(ctx context.Context, classID uuid.UUID) (*mod
 	introspection := ctx.Value(introspector.OAuth2IntrospectionContextKey).(oauth2.Introspection)
 	subj, err := uuid.Parse(introspection.Subject)
 	if err != nil {
-		return nil, ErrUnauthenticated
+		return nil, ErrUnauthorized
 	}
 	_, err = models.MemberByUserIDClassID(s, subj, classID)
 	if err != nil {
-		// Return ErrNotFound to protect the secrecy of the class (whether or not it exists)
 		return nil, ErrNotFound
 	}
 	return models.ClassByID(s, classID)
@@ -47,7 +36,7 @@ func (s *postgresService) CreateClass(ctx context.Context, name string) (*uuid.U
 	introspection := ctx.Value(introspector.OAuth2IntrospectionContextKey).(oauth2.Introspection)
 	subj, err := uuid.Parse(introspection.Subject)
 	if err != nil {
-		return nil, ErrUnauthenticated
+		return nil, ErrUnauthorized
 	}
 	tx, err := s.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false})
 	if err != nil {
@@ -76,14 +65,18 @@ func (s *postgresService) CreateClass(ctx context.Context, name string) (*uuid.U
 		return nil, err
 	}
 	err = tx.Commit()
-	return &class.ID, err
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	return &class.ID, nil
 }
 
 func (s *postgresService) UpdateClass(ctx context.Context, classID uuid.UUID, name *string, currentUnit *uuid.UUID) error {
 	introspection := ctx.Value(introspector.OAuth2IntrospectionContextKey).(oauth2.Introspection)
 	subj, err := uuid.Parse(introspection.Subject)
 	if err != nil {
-		return ErrUnauthenticated
+		return ErrUnauthorized
 	}
 	member, err := models.MemberByUserIDClassID(s, subj, classID)
 	if err != nil {
@@ -91,7 +84,7 @@ func (s *postgresService) UpdateClass(ctx context.Context, classID uuid.UUID, na
 		case sql.ErrNoRows:
 			return ErrNotFound
 		default:
-			return err
+			return ErrInternal
 		}
 	}
 	if !member.Owner {
