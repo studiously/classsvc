@@ -38,7 +38,7 @@ func (s *postgresService) CreateClass(ctx context.Context, name string) (*uuid.U
 	if err != nil {
 		return nil, ErrUnauthorized
 	}
-	tx, err := s.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false})
+	tx, err := s.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (s *postgresService) DeleteClass(ctx context.Context, classID uuid.UUID) er
 	if err != nil {
 		return err
 	}
-	tx, err := s.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false})
+	tx, err := s.BeginTx(ctx, nil)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -204,32 +204,6 @@ func (s *postgresService) SetRole(ctx context.Context, classID uuid.UUID, userID
 	if err != nil {
 		return err
 	}
-	// Owner is no longer a role, so this is unnecessary.
-	//// Special case: setting another owner means making the current owner an administrator.
-	//if self.Role == models.UserRoleOwner && role == models.UserRoleOwner {
-	//	tx, err := s.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault, ReadOnly: false})
-	//	if err != nil {
-	//		return err
-	//	}
-	//	self.Role = models.UserRoleAdministrator
-	//	err = self.Save(tx)
-	//	if err != nil {
-	//		tx.Rollback()
-	//		return err
-	//	}
-	//	target.Role = models.UserRoleOwner
-	//	err = target.Save(tx)
-	//	if err != nil {
-	//		tx.Rollback()
-	//		return err
-	//	}
-	//	err = tx.Commit()
-	//	if err != nil {
-	//		tx.Rollback()
-	//		return err
-	//	}
-	//	return nil
-	//}
 	target.Role = role
 	return target.Save(s)
 }

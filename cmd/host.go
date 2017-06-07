@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/studiously/classsvc/classsvc"
 	"github.com/studiously/classsvc/ddl"
+	"github.com/studiously/classsvc/middleware"
 )
 
 var (
@@ -140,7 +141,7 @@ A NATS cluster is required for messaging across services. Without it, stale data
 			service = classsvc.New(db)
 
 			if nc != nil {
-				mm, err := classsvc.MessagingMiddleware(nc)
+				mm, err := middleware.Messaging(nc)
 				if err != nil {
 					logger.Log("msg", "could not start encoded connection to NATS", "error", err)
 					// again, not fatal
@@ -151,8 +152,8 @@ A NATS cluster is required for messaging across services. Without it, stale data
 
 			}
 
-			service = classsvc.LoggingMiddleware(logger)(service)
-			service = classsvc.InstrumentingMiddleware(requestCount, duration)(service)
+			service = middleware.Logging(logger)(service)
+			service = middleware.Instrumenting(requestCount, duration)(service)
 		}
 
 		errs := make(chan error)
